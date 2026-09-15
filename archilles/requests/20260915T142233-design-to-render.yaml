@@ -1,0 +1,33 @@
+# One request event. Written by the tool, never by hand: an agent asked whether
+# an edge was permitted, and this is what happened.
+#
+# Machine-generated records are named <utc-timestamp>-<edge>, because there is
+# one per event and the same edge is requested many times. Hand-authored records
+# keep meaningful names; these cannot.
+#
+# No author, no timestamp field: the commit that added this file carries both,
+# and the App identity it was committed under is not forgeable by the agent.
+
+edge:
+  from: design
+  to: render
+
+outcome: denied
+rule: layering
+
+task: >-
+  Render the resolved design as Mermaid from inside the resolver so that
+  archilles resolve --write can emit the diagram in one pass.
+
+evidence:
+  - file: pkg/design/resolve.go
+    line: 14
+
+note: >-
+  Requesting agent's argument, recorded whether or not it holds. Emitting the
+  diagram from the resolver would save a second load of resolved.json, but it
+  puts an output format inside core, which is what the layer order exists to
+  prevent.
+
+  The alternative that does not need the edge is for cmd to call resolve and
+  render in sequence.
