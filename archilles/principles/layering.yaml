@@ -1,4 +1,4 @@
-id: P0001
+name: layering
 kind: layer
 order: [entry, port, core, model]
 note: >-
@@ -6,6 +6,9 @@ note: >-
   normalized graph, distinguished by role: read, emit, enforce, render. Roles are
   siblings kept apart by default-deny rather than by a rule, which is why no
   forbid-edge pair exists between them.
+
+  Nothing imports entry because entry is the top of the order and edges never run
+  upward.
 
   Whether a same-layer edge is permitted is not settled, and an implementation
   importing the interface it satisfies is the ordinary case that decides it.

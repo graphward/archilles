@@ -23,75 +23,75 @@
 version: 1
 
 components:
-  - id: archilles
+  - name: archilles
     path: cmd/archilles
     tags:
       layer: entry
 
-  - id: archilles-vet
+  - name: archilles-vet
     path: cmd/archilles-vet
     tags:
       layer: entry
 
-  - id: archilles-toolexec
+  - name: archilles-toolexec
     path: cmd/archilles-toolexec
     tags:
       layer: entry
 
-  - id: adapter
+  - name: adapter
     path: pkg/adapter
     tags:
       layer: port
       role: read
 
-  - id: adapter-golang
+  - name: adapter-golang
     path: pkg/adapter/golang
     tags:
       layer: port
       role: read
       lang: go
 
-  - id: emit
+  - name: emit
     path: pkg/emit
     tags:
       layer: port
       role: emit
       lang: go
 
-  - id: enforce
+  - name: enforce
     path: pkg/enforce
     tags:
       layer: port
       role: enforce
       lang: go
 
-  - id: render
+  - name: render
     path: pkg/render
     tags:
       layer: port
       role: render
 
-  - id: design
+  - name: design
     path: pkg/design
     tags:
       layer: core
 
-  - id: rules
+  - name: rules
     path: pkg/rules
     tags:
       layer: core
 
-  - id: ledger
+  - name: ledger
     path: pkg/ledger
     tags:
       layer: core
 
-  - id: graph
+  - name: graph
     path: pkg/graph
     tags:
       layer: model
 
-  - id: archgate
+  - name: archgate
     path: internal/archgate
     tags:
       layer: model

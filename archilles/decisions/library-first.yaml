@@ -1,7 +1,8 @@
-id: D0001
+name: library-first
 title: Library-first; cmd is a thin wrapper
-cites: P0003
+cites: layering
 note: >-
   pkg/ is the product. Every command must be a function call away from being an API, so
   a future server, MCP endpoint or UI consumes the same entry points the CLI does rather
-  than shelling out to a binary.
+  than shelling out to a binary. The layer order is what enforces it: entry sits at the
+  top, so nothing can import cmd/.
