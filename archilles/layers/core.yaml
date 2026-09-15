@@ -1,0 +1,9 @@
+name: core
+may_import: [model]
+same_layer: allow
+note: >-
+  Knows nothing of any language, toolchain or output format: it reaches only the
+  model.
+
+  same_layer is allowed because the resolver folds ledger records and the rule
+  evaluators read the design.

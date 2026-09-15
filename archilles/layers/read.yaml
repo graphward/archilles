@@ -1,0 +1,11 @@
+name: read
+may_import: [core, model]
+same_layer: allow
+note: >-
+  Faces source into the normalized graph.
+
+  The four port layers list each other nowhere, so they cannot import one
+  another. Siblings fall out of the DAG instead of needing a forbid rule.
+
+  same_layer is allowed because adapter-golang implements the Adapter
+  interface that adapter declares.

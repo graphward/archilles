@@ -1,0 +1,8 @@
+name: enforce
+may_import: [core, model]
+same_layer: deny
+note: >-
+  Faces the design into a toolchain gate.
+
+  The four port layers list each other nowhere, so they cannot import one
+  another. Siblings fall out of the DAG instead of needing a forbid rule.

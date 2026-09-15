@@ -1,0 +1,6 @@
+name: model
+may_import: []
+same_layer: deny
+note: >-
+  Pure types and set operations. Reaches nothing, which is what makes every layer
+  above it replaceable.

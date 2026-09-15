@@ -1,0 +1,8 @@
+name: render
+may_import: [core, model]
+same_layer: deny
+note: >-
+  Faces a diff into output.
+
+  The four port layers list each other nowhere, so they cannot import one
+  another. Siblings fall out of the DAG instead of needing a forbid rule.

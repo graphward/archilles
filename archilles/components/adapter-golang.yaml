@@ -1,0 +1,5 @@
+name: adapter-golang
+path: pkg/adapter/golang
+layer: read
+tags:
+  lang: go

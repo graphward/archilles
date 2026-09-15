@@ -1,0 +1,5 @@
+name: archgate
+path: internal/archgate
+layer: model
+tags:
+  generated: "true"

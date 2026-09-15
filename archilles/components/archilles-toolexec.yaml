@@ -1,0 +1,3 @@
+name: archilles-toolexec
+path: cmd/archilles-toolexec
+layer: entry
