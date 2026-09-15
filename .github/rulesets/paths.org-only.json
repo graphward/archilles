@@ -1,0 +1,21 @@
+{
+  "name": "protected-paths",
+  "target": "push",
+  "enforcement": "active",
+  "_comment": "REQUIRES AN ORG-OWNED REPO. GitHub rejects push rulesets on personal repos with 'Source only org-owned repos can have push rules'. Until archilles moves to an org this file is inert and CODEOWNERS is the (weaker, review-time) fallback. See docs/GOVERNANCE.md.",
+  "bypass_actors": [
+    { "actor_id": "${ARCHILLES_ARCHITECT_APP_ID}", "actor_type": "Integration", "bypass_mode": "always" },
+    { "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" }
+  ],
+  "conditions": {
+    "repository_name": { "include": ["archilles"], "exclude": [] }
+  },
+  "rules": [
+    {
+      "type": "file_path_restriction",
+      "parameters": {
+        "restricted_file_paths": ["archilles/**", "schema/**", ".github/**"]
+      }
+    }
+  ]
+}

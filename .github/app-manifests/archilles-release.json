@@ -1,0 +1,13 @@
+{
+  "name": "archilles-release",
+  "description": "release-please + goreleaser. The only App with tag rights.",
+  "url": "https://github.com/jameslett/archilles",
+  "public": false,
+  "default_events": [],
+  "default_permissions": {
+    "metadata": "read",
+    "contents": "write",
+    "pull_requests": "write",
+    "packages": "write"
+  }
+}

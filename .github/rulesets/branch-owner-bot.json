@@ -1,0 +1,13 @@
+{
+  "name": "bot-branches-bot-only",
+  "target": "branch",
+  "enforcement": "active",
+  "bypass_actors": [
+    { "actor_id": "${ARCHILLES_BOT_APP_ID}", "actor_type": "Integration", "bypass_mode": "always" },
+    { "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" }
+  ],
+  "conditions": {
+    "ref_name": { "include": ["refs/heads/archilles-bot/**"], "exclude": [] }
+  },
+  "rules": [{ "type": "creation" }, { "type": "update" }]
+}

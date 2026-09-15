@@ -1,0 +1,43 @@
+name: apply-rulesets
+
+# Governance as code: the repo's branch/tag rules live in .github/rulesets/*.json
+# and are applied by this workflow when that directory changes. Reviewing a
+# governance change is therefore reviewing a PR, like everything else.
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/rulesets/**']
+  workflow_dispatch:
+    inputs:
+      bootstrap:
+        description: 'Apply the pre-CI bootstrap ruleset instead of the full target state'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # GITHUB_TOKEN cannot administer rulesets. A short-lived installation
+      # token from an admin-capable App is minted here instead.
+      - id: token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.ARCHILLES_ADMIN_APP_ID }}
+          private-key: ${{ secrets.ARCHILLES_ADMIN_APP_PRIVATE_KEY }}
+
+      - name: Apply rulesets
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          REPO: ${{ github.repository }}
+          BOOTSTRAP: ${{ inputs.bootstrap && '1' || '0' }}
+          ARCHILLES_ARCHITECT_APP_ID: ${{ vars.ARCHILLES_ARCHITECT_APP_ID }}
+          ARCHILLES_BOT_APP_ID: ${{ vars.ARCHILLES_BOT_APP_ID }}
+          ARCHILLES_RELEASE_APP_ID: ${{ vars.ARCHILLES_RELEASE_APP_ID }}
+        run: scripts/apply-rulesets.sh
