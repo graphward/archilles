@@ -13,10 +13,6 @@ shopt -s nullglob
 for f in .github/rulesets/*.json; do
   base="$(basename "$f")"
   case "$base" in
-    *.org-only.json)
-      echo "skip   $base (push rulesets require an org-owned repo)"
-      continue
-      ;;
     main.bootstrap.json)
       if [ "${BOOTSTRAP:-0}" != "1" ]; then echo "skip   $base (set BOOTSTRAP=1)"; continue; fi
       ;;
@@ -39,10 +35,24 @@ for f in .github/rulesets/*.json; do
   id="$(gh api "repos/$REPO/rulesets" --jq ".[] | select(.name==\"$name\") | .id" 2>/dev/null | head -1)"
 
   if [ -n "$id" ]; then
-    gh api -X PUT "repos/$REPO/rulesets/$id" --input - <<<"$body" >/dev/null
-    echo "update $name (id $id)"
+    verb=update; method=PUT; path="repos/$REPO/rulesets/$id"
   else
-    gh api -X POST "repos/$REPO/rulesets" --input - <<<"$body" >/dev/null
-    echo "create $name"
+    verb=create; method=POST; path="repos/$REPO/rulesets"
+  fi
+
+  if err="$(gh api -X "$method" "$path" --input - <<<"$body" 2>&1)"; then
+    echo "$verb $name${id:+ (id $id)}"
+  elif grep -qE 'public repos cannot have push rules|org-owned repos can have push rules' <<<"$err"; then
+    # Push rulesets need an org-owned, non-public repo. Both conditions must
+    # hold; a public org repo still cannot have them. Say what is lost rather
+    # than failing silently or implying the paths are protected.
+    echo "SKIP  $name - GitHub refuses push rulesets here:" >&2
+    sed 's/^/      /' <<<"$err" | grep -i 'push rules' >&2 || true
+    echo "      => archilles/**, schema/**, .github/** are NOT protected at push." >&2
+    echo "      => CODEOWNERS is the only guard, and it acts at review, not push." >&2
+  else
+    echo "FAIL  $name" >&2
+    sed 's/^/      /' <<<"$err" >&2
+    exit 1
   fi
 done

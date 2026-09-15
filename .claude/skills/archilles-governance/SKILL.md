@@ -74,7 +74,7 @@ Rulesets live as JSON in `.github/rulesets/` and are applied by `scripts/apply-r
 - `branch-names.json` — any branch outside the vocabulary is rejected at creation.
 - `branch-owner-*.json` — per-role branch ownership. Rulesets express this by blocking the pattern for everyone and listing the one App as a bypass actor.
 - `tags.json` — `v*` create-only by the release App; no update, no deletion.
-- `paths.org-only.json` — restricts pushes touching the design and CI paths.
+- `paths.json` — restricts pushes touching the design and CI paths. Applies only to org-owned, non-public repos; the apply script reports a loud SKIP elsewhere rather than failing.
 
 ```bash
 BOOTSTRAP=1 scripts/apply-rulesets.sh   # before CI jobs exist
@@ -83,14 +83,16 @@ scripts/apply-rulesets.sh               # full target state
 
 ## Two constraints that will bite
 
-**Push rulesets require an org-owned repo.** The path restriction on `archilles/**`, `schema/**`, `.github/**` is a *push* ruleset, and GitHub rejects it on a personal repo:
+**Push rulesets need an org-owned repo that is not public.** Both conditions, independently:
 
 ```
 422  Source public repos cannot have push rules
      Source only org-owned repos can have push rules
 ```
 
-On a personal repo, `CODEOWNERS` is the only guard, and it is **review-time, not push-time**: an agent can commit to the design on its own branch and open a PR; only the merge is blocked. If push-time enforcement of the design paths is the point — and for archilles it is — the repo must live in an organization. A free org is enough.
+Moving a personal repo into an org clears the second and leaves the first. A **public** repo cannot have push rules at all, so the path restriction is unavailable there no matter who owns it.
+
+Where it does not apply, `CODEOWNERS` is the only guard and it is **review-time, not push-time**: an agent can commit to the design on its own branch and push it; only the merge is blocked. If push-time enforcement matters, the repo must be private or internal — or the design must live in its own private repo that the public one consumes at a pinned ref. Do not describe the restriction as enforced until one of those is true.
 
 **Required approvals deadlock solo owners.** GitHub does not let you approve your own PR. With `required_approving_review_count: 1` and one human, agent PRs work fine (the human is a different identity) but the human's own PRs can never merge, and bypass actors are empty by design. Use the bootstrap ruleset (approvals 0, everything else intact) while the human is still hand-authoring, and cut over once agents are opening the PRs.
 

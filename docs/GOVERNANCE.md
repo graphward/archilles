@@ -28,7 +28,7 @@ The REST API cannot create a GitHub App from a PAT — GitHub only supports the 
 node scripts/create-app.mjs archilles-engineer --org <org>   # browser opens, click "Create GitHub App"
 ```
 
-**Create these under the org, not under `jameslett`.** A private App can only be installed on the account that owns it, and ownership is fixed at creation — creating them personally and then transferring the repo means building all five again. Since the org move is what makes `paths.org-only.json` applicable anyway, do the move first and the Apps second.
+**Create these under the org, not under `jameslett`.** A private App can only be installed on the account that owns it, and ownership is fixed at creation — creating them personally and then transferring the repo means building all five again. Do the org move first and the Apps second.
 
 Credentials are written to `.secrets/<app>/` (gitignored, mode 0600): `private-key.pem`, `app.json`, `client-secret.txt`, `webhook-secret.txt`. Then install the App on the repo and record its id, which the rulesets reference:
 
@@ -69,29 +69,37 @@ Governance lives in [`.github/rulesets/`](../.github/rulesets/) and is applied b
 | `branch-owner-design.json` | `design/*` blocked for everyone, bypassed by `archilles-architect` and admins. |
 | `branch-owner-bot.json` | `archilles-bot/*` blocked for everyone, bypassed by `archilles-bot` and admins. |
 | `tags.json` | `v*` tags: creation by `archilles-release` only; no update, no deletion. |
-| `paths.org-only.json` | Push-time restriction on `archilles/**`, `schema/**`, `.github/**`; bypassed by `archilles-architect` and admins. Live now that the repo is org-owned. |
+| `paths.json` | Push-time restriction on `archilles/**`, `schema/**`, `.github/**`. **Not applicable while the repo is public — see below.** |
 
 Per-actor branch ownership is expressed the way rulesets express it: block the pattern for everybody, then list the one App as a bypass actor.
 
-## Why this repo lives in an org
+## The path restriction is not enforced, and cannot be here
 
-`archilles` was seeded at `jameslett/archilles` and transferred to `graphward/archilles` on 2026-09-15. That was not cosmetic.
+This is the gap between what the handoff specifies and what the platform allows. Read it before relying on the model.
 
-The handoff specifies that a write to `archilles/**`, `schema/**`, or `.github/**` by any actor other than the architect App is *rejected at push*. That is a **push ruleset**, and GitHub refuses push rulesets on personal repos:
+The handoff says a write to `archilles/**`, `schema/**`, or `.github/**` by any actor other than the architect App is *rejected at push*. That is a **push ruleset**, and GitHub imposes two independent conditions on those:
 
 ```
 422 Validation Failed
-  Source public repos cannot have push rules
-  Source only org-owned repos can have push rules
+  Source public repos cannot have push rules          <- still blocking
+  Source only org-owned repos can have push rules     <- fixed by the org move
 ```
 
-On a personal repo the only guard on those paths would be `CODEOWNERS`, which is **review-time, not push-time**: an agent could commit to the design on its own branch and open a PR, and nothing would stop the push — only the merge. "Enforced by ruleset path restrictions, not by instruction" would have been false. Under `graphward` it is true, and `paths.org-only.json` is live.
+Transferring to `graphward` satisfied the second. The first stands: **push rulesets are unavailable on public repositories, org-owned or not.** `archilles` is public by choice, so `paths.json` cannot be applied and `scripts/apply-rulesets.sh` reports it as a loud SKIP rather than a failure.
 
-The same reasoning applies to the Apps: a private App can only be installed on the account that owns it, and ownership is fixed at creation, so the five Apps are owned by `graphward` rather than by James personally.
+What actually guards those paths today is `CODEOWNERS`, which acts **at review, not at push**. Concretely, an agent with `contents: write` can commit to `archilles/design.yaml` on its own branch and push it; only the *merge* to `main` is blocked, pending James's review. The design cannot be changed behind your back, but it can be changed in a branch and must be caught by a human reading the diff.
 
-## One constraint that remains
+The options, none of them free:
 
-### Required approvals deadlock the owner's own PRs
+- **Stay public, accept review-time enforcement.** The agent instructions in `.claude/agents/` state the restriction, and `CODEOWNERS` catches it at the merge. This is the current state.
+- **Make the repo private or internal.** Push rules become available immediately and the handoff's model holds exactly as written. Costs the public repo.
+- **Split the design into its own private repo.** The handoff's multi-repo mode already describes this: a private design repo holding `archilles/**` and `schema/**`, with the public component repo consuming it at a pinned ref. Push rules protect the private side; the public side has nothing sensitive to protect. This is the only option that keeps both properties, and it is v2 work.
+
+Do not describe the path restriction as enforced until one of the last two is done.
+
+The org move was still necessary for the Apps: a private App can only be installed on the account that owns it and ownership is fixed at creation, so the five Apps belong to `graphward` rather than to James personally.
+
+## Required approvals deadlock the owner's own PRs
 
 GitHub does not permit approving your own pull request. With `required_approving_review_count: 1` and James as the sole human in `graphward`:
 
