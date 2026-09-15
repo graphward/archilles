@@ -1,7 +1,0 @@
-name: render-reads-core
-rule: core-faces-nothing-outward
-scope: [pkg/render]
-expires: 2026-12-31
-note: >-
-  Placeholder showing the exception shape. Not a real exception: nothing here needs
-  one, and an exception with no violation behind it is reported as unused.

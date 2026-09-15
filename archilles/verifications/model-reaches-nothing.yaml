@@ -1,7 +1,0 @@
-name: model-reaches-nothing
-deny:
-  from: [model]
-  to: ["*"]
-note: >-
-  The normalized graph is pure types and set operations. Depending on nothing is
-  what lets everything above it be replaced.

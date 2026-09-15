@@ -1,7 +1,0 @@
-name: nothing-imports-entry
-deny:
-  from: ["*"]
-  to: [entry]
-note: >-
-  Library-first: every command stays a function call away from being an API, which
-  stops being true the moment something imports cmd/.

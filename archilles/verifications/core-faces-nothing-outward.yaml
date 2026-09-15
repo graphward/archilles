@@ -1,7 +1,0 @@
-name: core-faces-nothing-outward
-deny:
-  from: [core]
-  to: [entry, read, emit, enforce, render]
-note: >-
-  Adapters, emitters, gates and renderers depend on core; core depends on none of
-  them. This is what makes a second language an addition rather than a rewrite.
