@@ -1,0 +1,8 @@
+id: X0001
+rule: P0002
+scope:
+  id: render
+expires: 2026-12-31
+note: >-
+  Placeholder showing the exception shape. Not a real exception: nothing here
+  needs one, and an exception with no violation behind it is reported as unused.

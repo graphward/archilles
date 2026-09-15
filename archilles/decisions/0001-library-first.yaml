@@ -1,13 +1,7 @@
 id: D0001
 title: Library-first; cmd is a thin wrapper
-kind: decision
 cites: P0003
-status: proposed
-source: {type: human, ref: handoff}
-author: james
-approver: james
-created: 2026-09-15
-context: >-
-  pkg/ is the product. Every command must be a function call away from being an
-  API, so that a future server, MCP endpoint or UI consumes the same entry
-  points CI does, rather than shelling out to a binary.
+note: >-
+  pkg/ is the product. Every command must be a function call away from being an API, so
+  a future server, MCP endpoint or UI consumes the same entry points the CLI does rather
+  than shelling out to a binary.
