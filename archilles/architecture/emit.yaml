@@ -1,4 +1,0 @@
-name: emit
-paths: [pkg/emit]
-note: >-
-  Generates config, schemas and interfaces from the design. Language-aware.

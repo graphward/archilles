@@ -1,4 +1,0 @@
-name: render
-paths: [pkg/render]
-note: >-
-  Turns one diff struct into json, mermaid or text.

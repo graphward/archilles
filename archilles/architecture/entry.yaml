@@ -1,4 +1,0 @@
-name: entry
-paths: [cmd]
-note: >-
-  The CLI, the vet wrapper and the compile wrapper. Thin; they hold no logic.

@@ -1,4 +1,0 @@
-name: enforce
-paths: [pkg/enforce]
-note: >-
-  Gates the toolchain: the analyzer and the compile interceptor. Language-aware.
