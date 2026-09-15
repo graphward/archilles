@@ -1,0 +1,12 @@
+id: D0005
+title: Go adapter first; the adapter interface is fixed in v0
+kind: decision
+status: proposed
+source: {type: human, ref: handoff}
+author: james
+approver: james
+created: 2026-09-15
+context: >-
+  Terragrunt/Terraform is a target, not a v0 concern, but the Adapter interface
+  is settled now so the model is not designed around Go and retrofitted. Nothing
+  in pkg/design, pkg/graph or pkg/rules may know about any language.

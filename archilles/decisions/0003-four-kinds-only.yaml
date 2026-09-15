@@ -1,0 +1,14 @@
+id: D0003
+title: Exactly four principle kinds in v0
+kind: decision
+cites: D0002
+status: proposed
+source: {type: human, ref: handoff}
+author: james
+approver: james
+created: 2026-09-15
+context: >-
+  allow-edge, forbid-edge, layer, ownership. Wanting a fifth is recorded in
+  docs/backlog.md, not added. Each kind costs a schema, a resolver branch,
+  an evaluator and fixtures; four that are fully enforced beat eight that are
+  half-wired.

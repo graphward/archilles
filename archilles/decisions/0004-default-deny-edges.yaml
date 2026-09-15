@@ -1,0 +1,14 @@
+id: D0004
+title: Edges are default-deny
+kind: decision
+cites: D0003
+status: proposed
+source: {type: human, ref: handoff}
+author: james
+approver: james
+created: 2026-09-15
+context: >-
+  An edge absent from design.yaml is a violation, not an omission. Default-allow
+  would mean drift is invisible until someone thinks to forbid it, which is the
+  failure this tool exists to catch. Cost: every legitimate new dependency needs
+  a design change, which is the point.

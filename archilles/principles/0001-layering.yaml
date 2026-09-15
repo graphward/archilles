@@ -1,0 +1,14 @@
+id: P0001
+kind: layer
+params:
+  order: [entry, adapter, render, core, model]
+scope: {tags: {}}
+status: proposed
+source: {type: human, ref: handoff}
+author: james
+approver: james
+created: 2026-09-15
+note: >-
+  Edges may only go downward in this order. The order is linear and therefore
+  cannot express that `adapter` and `render` are siblings which must not import
+  each other; P0004 carries that intent as an explicit forbid-edge pair.

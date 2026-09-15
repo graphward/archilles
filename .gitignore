@@ -2,8 +2,11 @@
 # A fresh clone must not compile until the diff passes once.
 internal/archgate/gate_gen.go
 
-# Build output
+# Build output. `/archilles` matches the binary AND the design directory of the
+# same name, so the directory is negated back in - it is the product's input and
+# must be tracked.
 /archilles
+!/archilles/
 /archilles-vet
 /archilles-toolexec
 /dist/

@@ -1,0 +1,13 @@
+id: D0006
+title: Mermaid is the only visual format in v0
+kind: decision
+status: proposed
+source: {type: human, ref: handoff}
+author: james
+approver: james
+created: 2026-09-15
+context: >-
+  json is built first and is the CI contract; text and mermaid are renderings of
+  the same struct. Mermaid renders in a GitHub PR comment with no toolchain,
+  which is where the free tier lives. DOT and a full graph UI wait for v1, when
+  a symbol-level graph makes Mermaid unreadable anyway.

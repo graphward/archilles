@@ -1,0 +1,99 @@
+# archilles' own design. Human-authored intent; the tool reads this, never writes it.
+#
+# A file belongs to the component whose `path` is its longest prefix match.
+# Files matching no component are `unassigned` and reported.
+# Edges are DEFAULT DENY: an edge not listed here is a violation, not an omission.
+
+version: 1
+
+components:
+  # --- entry: thin wrappers, nothing imports these -------------------------
+  - id: cli
+    path: cmd/archilles
+    tags: {layer: entry}
+  - id: vet
+    path: cmd/archilles-vet
+    tags: {layer: entry}
+  - id: toolexec
+    path: cmd/archilles-toolexec
+    tags: {layer: entry}
+
+  # --- adapter: the only language-aware code -------------------------------
+  - id: adapter
+    path: pkg/adapter
+    tags: {layer: adapter}
+  - id: adapter-go
+    path: pkg/adapter/golang
+    tags: {layer: adapter, lang: go}
+  - id: analyzer
+    path: pkg/analyzer
+    tags: {layer: adapter, lang: go}
+
+  # --- render: renderings of one diff struct -------------------------------
+  - id: render-json
+    path: pkg/render/json
+    tags: {layer: render}
+  - id: render-mermaid
+    path: pkg/render/mermaid
+    tags: {layer: render}
+
+  # --- core: knows nothing of language or output ---------------------------
+  - id: design
+    path: pkg/design
+    tags: {layer: core}
+  - id: rules
+    path: pkg/rules
+    tags: {layer: core}
+  - id: ledger
+    path: pkg/ledger
+    tags: {layer: core}
+
+  # --- model: pure types, no I/O, depends on nothing -----------------------
+  - id: graph
+    path: pkg/graph
+    tags: {layer: model}
+  - id: archgate
+    path: internal/archgate
+    tags: {layer: model, generated: "true"}
+
+edges:
+  # cli wires everything together
+  - {from: cli, to: design}
+  - {from: cli, to: rules}
+  - {from: cli, to: graph}
+  - {from: cli, to: adapter}
+  - {from: cli, to: adapter-go}
+  - {from: cli, to: render-json}
+  - {from: cli, to: render-mermaid}
+  - {from: cli, to: archgate}
+
+  # vet wraps only the analyzer
+  - {from: vet, to: analyzer}
+  - {from: vet, to: archgate}
+
+  # toolexec needs just enough to check imports against the resolved design
+  - {from: toolexec, to: design}
+  - {from: toolexec, to: graph}
+  - {from: toolexec, to: archgate}
+
+  # adapters read the resolved design, emit the normalized graph
+  - {from: analyzer, to: design}
+  - {from: analyzer, to: graph}
+  - {from: adapter, to: design}
+  - {from: adapter, to: graph}
+  - {from: adapter-go, to: adapter}
+  - {from: adapter-go, to: design}
+  - {from: adapter-go, to: graph}
+
+  # renderers read the diff and the design; neither knows the other exists
+  - {from: render-json, to: design}
+  - {from: render-json, to: graph}
+  - {from: render-mermaid, to: design}
+  - {from: render-mermaid, to: graph}
+
+  # core
+  - {from: rules, to: design}
+  - {from: rules, to: graph}
+  - {from: design, to: ledger}
+  - {from: design, to: graph}
+  - {from: ledger, to: graph}

@@ -1,0 +1,13 @@
+id: D0007
+title: The graph model is multi-level from commit one
+kind: decision
+status: proposed
+source: {type: human, ref: handoff}
+author: james
+approver: james
+created: 2026-09-15
+context: >-
+  Component / Package / File / Symbol exist in the model even though v0 only
+  extracts and diffs at Component level, and graph.Collapse folds finer to
+  coarser via Parent. Modelling packages now and retrofitting symbols later is
+  the rewrite this decision exists to prevent.
