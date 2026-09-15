@@ -1,25 +1,3 @@
-# archilles' own design. Human-authored intent; the tool reads this, never writes it.
-#
-# A file belongs to the component whose path is its longest prefix match.
-# Files matching no component are unassigned, and reported.
-#
-# Edges are DEFAULT DENY. Each component lists what it may import; anything
-# absent is a violation, not an omission.
-#
-# Four layers, strictly linear: entry -> port -> core -> model.
-# port is every component facing something outside the normalized graph,
-# distinguished by role:
-#
-#   read     source -> graph        extract an existing codebase
-#   emit     design -> artifact     generate config, schemas, interfaces
-#   enforce  design -> toolchain    reject at vet and compile time
-#   render   diff   -> output       json, mermaid, text
-#
-# One package per role. A role splits into subpackages when a second
-# implementation exists, not before: pkg/render holds json, mermaid and text
-# as files because they render one struct three ways. adapter is split because
-# the Adapter interface is fixed in v0 and a Terragrunt adapter is planned.
-
 version: 1
 
 components:
