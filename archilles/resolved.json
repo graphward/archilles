@@ -5,7 +5,8 @@
       "id": "adapter",
       "path": "pkg/adapter",
       "tags": {
-        "layer": "adapter"
+        "layer": "port",
+        "role": "read"
       }
     },
     {
@@ -13,15 +14,8 @@
       "path": "pkg/adapter/golang",
       "tags": {
         "lang": "go",
-        "layer": "adapter"
-      }
-    },
-    {
-      "id": "analyzer",
-      "path": "pkg/analyzer",
-      "tags": {
-        "lang": "go",
-        "layer": "adapter"
+        "layer": "port",
+        "role": "read"
       }
     },
     {
@@ -47,6 +41,40 @@
       }
     },
     {
+      "id": "emit",
+      "path": "pkg/emit",
+      "tags": {
+        "layer": "port",
+        "role": "emit"
+      }
+    },
+    {
+      "id": "emit-goarchlint",
+      "path": "pkg/emit/goarchlint",
+      "tags": {
+        "lang": "go",
+        "layer": "port",
+        "role": "emit"
+      }
+    },
+    {
+      "id": "enforce",
+      "path": "pkg/enforce",
+      "tags": {
+        "layer": "port",
+        "role": "enforce"
+      }
+    },
+    {
+      "id": "enforce-go",
+      "path": "pkg/enforce/golang",
+      "tags": {
+        "lang": "go",
+        "layer": "port",
+        "role": "enforce"
+      }
+    },
+    {
       "id": "graph",
       "path": "pkg/graph",
       "tags": {
@@ -61,17 +89,35 @@
       }
     },
     {
+      "id": "render",
+      "path": "pkg/render",
+      "tags": {
+        "layer": "port",
+        "role": "render"
+      }
+    },
+    {
       "id": "render-json",
       "path": "pkg/render/json",
       "tags": {
-        "layer": "render"
+        "layer": "port",
+        "role": "render"
       }
     },
     {
       "id": "render-mermaid",
       "path": "pkg/render/mermaid",
       "tags": {
-        "layer": "render"
+        "layer": "port",
+        "role": "render"
+      }
+    },
+    {
+      "id": "render-text",
+      "path": "pkg/render/text",
+      "tags": {
+        "layer": "port",
+        "role": "render"
       }
     },
     {
@@ -103,8 +149,7 @@
       "params": {
         "order": [
           "entry",
-          "adapter",
-          "render",
+          "port",
           "core",
           "model"
         ]
@@ -125,7 +170,7 @@
         },
         "to": {
           "tags": {
-            "layer": "adapter"
+            "layer": "port"
           }
         }
       },
@@ -151,26 +196,6 @@
         "tags": {}
       },
       "origin": "principles/0003-nothing-imports-cmd.yaml"
-    },
-    {
-      "id": "P0004",
-      "kind": "forbid-edge",
-      "params": {
-        "from": {
-          "tags": {
-            "layer": "adapter"
-          }
-        },
-        "to": {
-          "tags": {
-            "layer": "render"
-          }
-        }
-      },
-      "scope": {
-        "tags": {}
-      },
-      "origin": "principles/0004-adapter-render-are-siblings.yaml"
     },
     {
       "id": "P0005",
@@ -271,38 +296,6 @@
       "kind": "allow-edge",
       "params": {
         "from": {
-          "id": "analyzer"
-        },
-        "to": {
-          "id": "design"
-        }
-      },
-      "scope": {
-        "tags": {}
-      },
-      "origin": "design.yaml#edges"
-    },
-    {
-      "id": "E0007",
-      "kind": "allow-edge",
-      "params": {
-        "from": {
-          "id": "analyzer"
-        },
-        "to": {
-          "id": "graph"
-        }
-      },
-      "scope": {
-        "tags": {}
-      },
-      "origin": "design.yaml#edges"
-    },
-    {
-      "id": "E0008",
-      "kind": "allow-edge",
-      "params": {
-        "from": {
           "id": "cli"
         },
         "to": {
@@ -315,7 +308,7 @@
       "origin": "design.yaml#edges"
     },
     {
-      "id": "E0009",
+      "id": "E0007",
       "kind": "allow-edge",
       "params": {
         "from": {
@@ -331,7 +324,7 @@
       "origin": "design.yaml#edges"
     },
     {
-      "id": "E0010",
+      "id": "E0008",
       "kind": "allow-edge",
       "params": {
         "from": {
@@ -347,7 +340,7 @@
       "origin": "design.yaml#edges"
     },
     {
-      "id": "E0011",
+      "id": "E0009",
       "kind": "allow-edge",
       "params": {
         "from": {
@@ -355,6 +348,38 @@
         },
         "to": {
           "id": "design"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0010",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "cli"
+        },
+        "to": {
+          "id": "emit"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0011",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "cli"
+        },
+        "to": {
+          "id": "emit-goarchlint"
         }
       },
       "scope": {
@@ -386,7 +411,7 @@
           "id": "cli"
         },
         "to": {
-          "id": "render-json"
+          "id": "render"
         }
       },
       "scope": {
@@ -402,7 +427,7 @@
           "id": "cli"
         },
         "to": {
-          "id": "render-mermaid"
+          "id": "render-json"
         }
       },
       "scope": {
@@ -418,7 +443,7 @@
           "id": "cli"
         },
         "to": {
-          "id": "rules"
+          "id": "render-mermaid"
         }
       },
       "scope": {
@@ -431,10 +456,10 @@
       "kind": "allow-edge",
       "params": {
         "from": {
-          "id": "design"
+          "id": "cli"
         },
         "to": {
-          "id": "graph"
+          "id": "render-text"
         }
       },
       "scope": {
@@ -447,10 +472,10 @@
       "kind": "allow-edge",
       "params": {
         "from": {
-          "id": "design"
+          "id": "cli"
         },
         "to": {
-          "id": "ledger"
+          "id": "rules"
         }
       },
       "scope": {
@@ -463,7 +488,7 @@
       "kind": "allow-edge",
       "params": {
         "from": {
-          "id": "ledger"
+          "id": "design"
         },
         "to": {
           "id": "graph"
@@ -479,10 +504,10 @@
       "kind": "allow-edge",
       "params": {
         "from": {
-          "id": "render-json"
+          "id": "design"
         },
         "to": {
-          "id": "design"
+          "id": "ledger"
         }
       },
       "scope": {
@@ -495,10 +520,10 @@
       "kind": "allow-edge",
       "params": {
         "from": {
-          "id": "render-json"
+          "id": "emit"
         },
         "to": {
-          "id": "graph"
+          "id": "design"
         }
       },
       "scope": {
@@ -511,10 +536,10 @@
       "kind": "allow-edge",
       "params": {
         "from": {
-          "id": "render-mermaid"
+          "id": "emit"
         },
         "to": {
-          "id": "design"
+          "id": "graph"
         }
       },
       "scope": {
@@ -527,10 +552,10 @@
       "kind": "allow-edge",
       "params": {
         "from": {
-          "id": "render-mermaid"
+          "id": "emit-goarchlint"
         },
         "to": {
-          "id": "graph"
+          "id": "design"
         }
       },
       "scope": {
@@ -543,10 +568,10 @@
       "kind": "allow-edge",
       "params": {
         "from": {
-          "id": "rules"
+          "id": "emit-goarchlint"
         },
         "to": {
-          "id": "design"
+          "id": "emit"
         }
       },
       "scope": {
@@ -559,7 +584,7 @@
       "kind": "allow-edge",
       "params": {
         "from": {
-          "id": "rules"
+          "id": "emit-goarchlint"
         },
         "to": {
           "id": "graph"
@@ -575,10 +600,10 @@
       "kind": "allow-edge",
       "params": {
         "from": {
-          "id": "toolexec"
+          "id": "enforce"
         },
         "to": {
-          "id": "archgate"
+          "id": "design"
         }
       },
       "scope": {
@@ -591,10 +616,10 @@
       "kind": "allow-edge",
       "params": {
         "from": {
-          "id": "toolexec"
+          "id": "enforce"
         },
         "to": {
-          "id": "design"
+          "id": "graph"
         }
       },
       "scope": {
@@ -607,10 +632,10 @@
       "kind": "allow-edge",
       "params": {
         "from": {
-          "id": "toolexec"
+          "id": "enforce-go"
         },
         "to": {
-          "id": "graph"
+          "id": "design"
         }
       },
       "scope": {
@@ -623,10 +648,10 @@
       "kind": "allow-edge",
       "params": {
         "from": {
-          "id": "vet"
+          "id": "enforce-go"
         },
         "to": {
-          "id": "analyzer"
+          "id": "enforce"
         }
       },
       "scope": {
@@ -639,10 +664,298 @@
       "kind": "allow-edge",
       "params": {
         "from": {
+          "id": "enforce-go"
+        },
+        "to": {
+          "id": "graph"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0030",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "ledger"
+        },
+        "to": {
+          "id": "graph"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0031",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "render"
+        },
+        "to": {
+          "id": "design"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0032",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "render"
+        },
+        "to": {
+          "id": "graph"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0033",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "render-json"
+        },
+        "to": {
+          "id": "design"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0034",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "render-json"
+        },
+        "to": {
+          "id": "graph"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0035",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "render-json"
+        },
+        "to": {
+          "id": "render"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0036",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "render-mermaid"
+        },
+        "to": {
+          "id": "design"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0037",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "render-mermaid"
+        },
+        "to": {
+          "id": "graph"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0038",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "render-mermaid"
+        },
+        "to": {
+          "id": "render"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0039",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "render-text"
+        },
+        "to": {
+          "id": "design"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0040",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "render-text"
+        },
+        "to": {
+          "id": "graph"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0041",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "render-text"
+        },
+        "to": {
+          "id": "render"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0042",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "rules"
+        },
+        "to": {
+          "id": "design"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0043",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "rules"
+        },
+        "to": {
+          "id": "graph"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0044",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "toolexec"
+        },
+        "to": {
+          "id": "archgate"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0045",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "toolexec"
+        },
+        "to": {
+          "id": "enforce-go"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0046",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
           "id": "vet"
         },
         "to": {
           "id": "archgate"
+        }
+      },
+      "scope": {
+        "tags": {}
+      },
+      "origin": "design.yaml#edges"
+    },
+    {
+      "id": "E0047",
+      "kind": "allow-edge",
+      "params": {
+        "from": {
+          "id": "vet"
+        },
+        "to": {
+          "id": "enforce-go"
         }
       },
       "scope": {

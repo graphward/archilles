@@ -3,6 +3,20 @@
 # A file belongs to the component whose `path` is its longest prefix match.
 # Files matching no component are `unassigned` and reported.
 # Edges are DEFAULT DENY: an edge not listed here is a violation, not an omission.
+#
+# Four layers, strictly linear: entry -> port -> core -> model.
+#
+# `port` is every component that faces something outside the normalized graph.
+# Ports carry a `role` saying which direction they face:
+#
+#   read     source        -> graph      extract an existing codebase
+#   emit     design        -> artifact   generate config, schemas, interfaces
+#   enforce  design        -> toolchain  reject at vet / compile time
+#   render   diff          -> output     json, mermaid, text
+#
+# read/emit/enforce are language-aware and carry `lang`. render is not.
+# Roles are siblings: no edge is declared between them, and default-deny does
+# the rest.
 
 version: 1
 
@@ -18,26 +32,45 @@ components:
     path: cmd/archilles-toolexec
     tags: {layer: entry}
 
-  # --- adapter: the only language-aware code -------------------------------
+  # --- port / read: language -> graph --------------------------------------
   - id: adapter
     path: pkg/adapter
-    tags: {layer: adapter}
+    tags: {layer: port, role: read}
   - id: adapter-go
     path: pkg/adapter/golang
-    tags: {layer: adapter, lang: go}
-  - id: analyzer
-    path: pkg/analyzer
-    tags: {layer: adapter, lang: go}
+    tags: {layer: port, role: read, lang: go}
 
-  # --- render: renderings of one diff struct -------------------------------
+  # --- port / emit: design -> artifact in a target language or tool --------
+  - id: emit
+    path: pkg/emit
+    tags: {layer: port, role: emit}
+  - id: emit-goarchlint
+    path: pkg/emit/goarchlint
+    tags: {layer: port, role: emit, lang: go}
+
+  # --- port / enforce: design -> toolchain gate ----------------------------
+  - id: enforce
+    path: pkg/enforce
+    tags: {layer: port, role: enforce}
+  - id: enforce-go
+    path: pkg/enforce/golang
+    tags: {layer: port, role: enforce, lang: go}
+
+  # --- port / render: diff -> output ---------------------------------------
+  - id: render
+    path: pkg/render
+    tags: {layer: port, role: render}
   - id: render-json
     path: pkg/render/json
-    tags: {layer: render}
+    tags: {layer: port, role: render}
   - id: render-mermaid
     path: pkg/render/mermaid
-    tags: {layer: render}
+    tags: {layer: port, role: render}
+  - id: render-text
+    path: pkg/render/text
+    tags: {layer: port, role: render}
 
-  # --- core: knows nothing of language or output ---------------------------
+  # --- core: knows nothing of language, toolchain or output ----------------
   - id: design
     path: pkg/design
     tags: {layer: core}
@@ -57,39 +90,59 @@ components:
     tags: {layer: model, generated: "true"}
 
 edges:
-  # cli wires everything together
+  # cli wires every port together
   - {from: cli, to: design}
   - {from: cli, to: rules}
   - {from: cli, to: graph}
   - {from: cli, to: adapter}
   - {from: cli, to: adapter-go}
+  - {from: cli, to: emit}
+  - {from: cli, to: emit-goarchlint}
+  - {from: cli, to: render}
   - {from: cli, to: render-json}
   - {from: cli, to: render-mermaid}
+  - {from: cli, to: render-text}
   - {from: cli, to: archgate}
 
-  # vet wraps only the analyzer
-  - {from: vet, to: analyzer}
+  # the two gate entrypoints carry no logic of their own
+  - {from: vet, to: enforce-go}
   - {from: vet, to: archgate}
-
-  # toolexec needs just enough to check imports against the resolved design
-  - {from: toolexec, to: design}
-  - {from: toolexec, to: graph}
+  - {from: toolexec, to: enforce-go}
   - {from: toolexec, to: archgate}
 
-  # adapters read the resolved design, emit the normalized graph
-  - {from: analyzer, to: design}
-  - {from: analyzer, to: graph}
+  # read
   - {from: adapter, to: design}
   - {from: adapter, to: graph}
   - {from: adapter-go, to: adapter}
   - {from: adapter-go, to: design}
   - {from: adapter-go, to: graph}
 
-  # renderers read the diff and the design; neither knows the other exists
+  # emit
+  - {from: emit, to: design}
+  - {from: emit, to: graph}
+  - {from: emit-goarchlint, to: emit}
+  - {from: emit-goarchlint, to: design}
+  - {from: emit-goarchlint, to: graph}
+
+  # enforce
+  - {from: enforce, to: design}
+  - {from: enforce, to: graph}
+  - {from: enforce-go, to: enforce}
+  - {from: enforce-go, to: design}
+  - {from: enforce-go, to: graph}
+
+  # render
+  - {from: render, to: design}
+  - {from: render, to: graph}
+  - {from: render-json, to: render}
   - {from: render-json, to: design}
   - {from: render-json, to: graph}
+  - {from: render-mermaid, to: render}
   - {from: render-mermaid, to: design}
   - {from: render-mermaid, to: graph}
+  - {from: render-text, to: render}
+  - {from: render-text, to: design}
+  - {from: render-text, to: graph}
 
   # core
   - {from: rules, to: design}

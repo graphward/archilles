@@ -11,11 +11,11 @@ archilles/decisions/*.yaml     one record per non-obvious choice
         |
         |  archilles resolve          fold records -> flat rule list
         v
-archilles/resolved.json        13 components, 34 rules                    <- derived, checked in
+archilles/resolved.json        18 components, 51 rules                    <- derived, checked in
         |
         |  archilles graph --intended
         v
-docs/intended.mmd              29 edges across 5 layers                   <- derived, checked in
+docs/intended.mmd              47 edges across 4 layers                   <- derived, checked in
 ```
 
 `resolved.json` and `intended.mmd` are checked in so that when `pkg/design` and `pkg/render/mermaid` land, `archilles resolve` and `archilles graph --intended` must reproduce them **byte for byte**. A mismatch is a bug in the implementation or in this fold, and finding out which is the reason for writing them before the parser exists.
@@ -32,14 +32,17 @@ graph TD
     toolexec["toolexec"]
     vet["vet"]
   end
-  subgraph layer_adapter["adapter"]
+  subgraph layer_port["port"]
     adapter["adapter"]
     adapter_go["adapter-go"]
-    analyzer["analyzer"]
-  end
-  subgraph layer_render["render"]
+    emit["emit"]
+    emit_goarchlint["emit-goarchlint"]
+    enforce["enforce"]
+    enforce_go["enforce-go"]
+    render["render"]
     render_json["render-json"]
     render_mermaid["render-mermaid"]
+    render_text["render-text"]
   end
   subgraph layer_core["core"]
     design["design"]
@@ -55,30 +58,48 @@ graph TD
   adapter_go --> adapter
   adapter_go --> design
   adapter_go --> graph
-  analyzer --> design
-  analyzer --> graph
   cli --> adapter
   cli --> adapter_go
   cli --> archgate
   cli --> design
+  cli --> emit
+  cli --> emit_goarchlint
   cli --> graph
+  cli --> render
   cli --> render_json
   cli --> render_mermaid
+  cli --> render_text
   cli --> rules
   design --> graph
   design --> ledger
+  emit --> design
+  emit --> graph
+  emit_goarchlint --> design
+  emit_goarchlint --> emit
+  emit_goarchlint --> graph
+  enforce --> design
+  enforce --> graph
+  enforce_go --> design
+  enforce_go --> enforce
+  enforce_go --> graph
   ledger --> graph
+  render --> design
+  render --> graph
   render_json --> design
   render_json --> graph
+  render_json --> render
   render_mermaid --> design
   render_mermaid --> graph
+  render_mermaid --> render
+  render_text --> design
+  render_text --> graph
+  render_text --> render
   rules --> design
   rules --> graph
   toolexec --> archgate
-  toolexec --> design
-  toolexec --> graph
-  vet --> analyzer
+  toolexec --> enforce_go
   vet --> archgate
+  vet --> enforce_go
 ```
 
 ## Canonical form
@@ -101,47 +122,62 @@ graph TD
 ## What the design asserts
 
 - **`graph` depends on nothing.** The normalized model — `Node`, `Edge`, `Level`, `Collapse`, the diff. Pure types and set operations; no I/O, no knowledge of YAML, Go, or rendering. Everything points at it; it points at nothing.
-- **Core never points up.** `design`, `rules`, `ledger` know nothing of adapters or renderers (P0002). This is what makes a second language adapter an addition rather than a rewrite.
-- **Language-awareness is confined to the adapter layer.** `adapter-go` and `analyzer` carry `lang: go` and are the only components that may import `go/types`, `go/packages`, or shell out to `go list`.
-- **Renderers are siblings of adapters** (P0004), not consumers of each other. `render-json` is the CI contract; Mermaid and text are renderings of the same struct.
-- **Nothing imports `cmd/`** (P0003). Three thin entrypoints: `cli` wires everything, `vet` wraps only the analyzer, `toolexec` needs just enough to check imports against the resolved design.
+- **Core faces nothing outward** (P0002). `design`, `rules`, `ledger` know nothing of any language, toolchain or output format.
+- **`port` is every component facing outside the normalized graph**, partitioned by `role`:
+
+| role | direction | language-aware |
+|---|---|---|
+| `read` | source → graph | yes |
+| `emit` | design → artifact in a target language or tool | yes |
+| `enforce` | design → toolchain gate | yes |
+| `render` | diff → output | no |
+
+- **Roles are siblings and stay isolated by default-deny**, not by a rule. There are 0 cross-role edges, and none can appear without a design change.
+- **Nothing imports `cmd/`** (P0003). Three thin entrypoints; `vet` and `toolexec` carry no logic of their own, delegating to `enforce-go`.
 
 ## Findings from folding this by hand
 
 ### 1. The `layer` kind does not say whether same-layer edges are allowed
 
-The handoff states edges "may only go downward in the order". Read strictly, **three of archilles' own intended edges violate its own layering principle**:
+Unresolved, and now load-bearing: **8 of archilles' own 47 edges are same-layer.**
 
 | edge | layer |
 |---|---|
-| `adapter-go -> adapter` | both `adapter` |
-| `design -> ledger` | both `core` |
-| `rules -> design` | both `core` |
+| `adapter-go -> adapter` | `port` |
+| `emit-goarchlint -> emit` | `port` |
+| `enforce-go -> enforce` | `port` |
+| `render-json -> render` | `port` |
+| `render-mermaid -> render` | `port` |
+| `render-text -> render` | `port` |
+| `design -> ledger` | `core` |
+| `rules -> design` | `core` |
 
-All three are obviously correct dependencies — a Go adapter implementing the `Adapter` interface, a resolver folding ledger records, rules evaluating against the design. So either `layer` permits same-layer edges by definition and the handoff's wording needs fixing, or it does not and every intra-layer dependency needs an explicit `allow-edge` that the layer rule then has to be defined not to override.
+Six are an implementation pointing at the interface it satisfies — the most ordinary dependency in Go. The handoff says edges "may only go downward in the order", and same-layer is not downward. Either `layer` permits same-layer by definition, or every implementation-to-interface edge needs an explicit `allow-edge` that `layer` must be defined not to override.
 
-This is a semantics decision for the `layer` kind, and it must be settled before `pkg/rules` is written. It is the first thing hand-authoring the design caught.
+**This must be settled before `pkg/rules` is written.**
 
-### 2. `analyzer` is Go-specific but sits outside `pkg/adapter`
+### 2. `forbid-edge` is currently redundant with default-deny
 
-Drawn in the `adapter` layer and tagged `lang: go`, because it reads Go imports via `go/analysis` — exactly the language-awareness the design confines to adapters. But the handoff places it at `pkg/analyzer`, a sibling of `pkg/adapter`, not underneath it. Either the principle is reworded, or the package moves to `pkg/adapter/golang/analyzer`. As drawn, the layer tag and the directory disagree.
+Every allow-edge here is id-to-id, so an undeclared edge is already denied. P0002 and P0003 forbid things nothing permits. They only earn their place once allow rules become tag-based and a broad allow needs overriding. P0004 (`adapter -> render` forbidden) was deleted for this reason: roles are kept apart by the absence of an edge, not by a rule.
+
+Worth knowing, because a reader could conclude the forbid rules are what's holding the architecture together. They are not; default-deny is.
 
 ### 3. `resolved.json` needs a canonical serialization before any hash means anything
 
-`DesignHash`, `ActualHash` and `resolved_hash` are load-bearing — the compile gate and the `resolved-drift` diff category both rest on them — but nothing yet defines what is hashed. Key order, whitespace, unicode escaping and float formatting all have to be pinned. Left absent rather than guessed.
+`DesignHash`, `ActualHash` and `resolved_hash` are load-bearing — the compile gate and the `resolved-drift` category both rest on them — but nothing defines what is hashed. Key order, whitespace, unicode escaping and float formatting all have to be pinned. Left absent rather than guessed.
 
-### 4. The `render` layer is invented
+### 4. `archgate` is declared, and that may be wrong
 
-The handoff's example is `order: [entry, adapter, core]` and goal 1 suggests `entry -> adapter -> core -> model`. Renderers fit nowhere in that line, so `render` was added between `adapter` and `core`.
+`internal/archgate` is generated, gitignored, and imported by all three `main`s for the side effect of failing the build when absent. Declared here with `generated: "true"` so it does not report `undeclared-component` — but being gitignored, a fresh clone has no such directory and it reports `missing-component` instead. The design asserts a component that is absent by construction. v0 has no concept of a generated or optional component.
 
-### 5. The linear `layer` kind cannot express siblings
+### 5. `design -> ledger` may point the wrong way
 
-`adapter` and `render` are independent; neither should import the other. A linear order only denies one direction. P0004 carries the other half as an explicit `forbid-edge`, which means the layer rule alone does not carry the intent — and if the order is ever changed, P0004 has to be changed with it or it silently protects nothing.
+The handoff puts "resolver (fold principles+exceptions -> rules)" in `pkg/design` and "append-only, fold" in `pkg/ledger`. Both claim the fold. Drawn with `design` folding records held by `ledger`.
 
-### 6. `archgate` is declared, and that may be wrong
+### 6. Deviations from the handoff's layout
 
-`internal/archgate` is generated, gitignored, and imported by all three `main`s for the side effect of failing the build when absent. It is declared here with `generated: "true"` so it does not report as `undeclared-component`. But because it is gitignored, a fresh clone has no such directory and it will instead report as `missing-component` — the design asserts a component that is absent by construction. v0 has no concept of a generated or optional component, and one of: the extractor skipping generated paths, a `generated` tag the differ honours, or simply not declaring it, has to be chosen.
+Three, all to make room for the write side:
 
-### 7. `design -> ledger` may point the wrong way
-
-Drawn with `design` folding records held by `ledger`. The handoff puts "resolver (fold principles+exceptions -> rules)" in `pkg/design` and "append-only, fold" in `pkg/ledger` — both claim the fold. Whichever owns it, the other points at it.
+- **`pkg/emit/`** is new. `resolve --emit go-arch-lint` is specified but the layout gave it nowhere to live. This is the half of the tool that generates schemas and interfaces into target languages.
+- **`pkg/enforce/golang/`** replaces `pkg/analyzer`. The analyzer and the toolexec wrapper are both Go-specific toolchain integration; putting them under a language-partitioned `enforce` keeps all language-awareness in `port` and lets a second language add a sibling.
+- **`pkg/render/text/`** is named explicitly rather than left implicit in the CLI.

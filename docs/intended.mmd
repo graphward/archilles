@@ -5,14 +5,17 @@ graph TD
     toolexec["toolexec"]
     vet["vet"]
   end
-  subgraph layer_adapter["adapter"]
+  subgraph layer_port["port"]
     adapter["adapter"]
     adapter_go["adapter-go"]
-    analyzer["analyzer"]
-  end
-  subgraph layer_render["render"]
+    emit["emit"]
+    emit_goarchlint["emit-goarchlint"]
+    enforce["enforce"]
+    enforce_go["enforce-go"]
+    render["render"]
     render_json["render-json"]
     render_mermaid["render-mermaid"]
+    render_text["render-text"]
   end
   subgraph layer_core["core"]
     design["design"]
@@ -28,27 +31,45 @@ graph TD
   adapter_go --> adapter
   adapter_go --> design
   adapter_go --> graph
-  analyzer --> design
-  analyzer --> graph
   cli --> adapter
   cli --> adapter_go
   cli --> archgate
   cli --> design
+  cli --> emit
+  cli --> emit_goarchlint
   cli --> graph
+  cli --> render
   cli --> render_json
   cli --> render_mermaid
+  cli --> render_text
   cli --> rules
   design --> graph
   design --> ledger
+  emit --> design
+  emit --> graph
+  emit_goarchlint --> design
+  emit_goarchlint --> emit
+  emit_goarchlint --> graph
+  enforce --> design
+  enforce --> graph
+  enforce_go --> design
+  enforce_go --> enforce
+  enforce_go --> graph
   ledger --> graph
+  render --> design
+  render --> graph
   render_json --> design
   render_json --> graph
+  render_json --> render
   render_mermaid --> design
   render_mermaid --> graph
+  render_mermaid --> render
+  render_text --> design
+  render_text --> graph
+  render_text --> render
   rules --> design
   rules --> graph
   toolexec --> archgate
-  toolexec --> design
-  toolexec --> graph
-  vet --> analyzer
+  toolexec --> enforce_go
   vet --> archgate
+  vet --> enforce_go
