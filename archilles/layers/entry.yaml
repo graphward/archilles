@@ -1,6 +1,0 @@
-name: entry
-may_import: [read, emit, enforce, render, core, model]
-same_layer: deny
-note: >-
-  Thin wrappers. Nothing may import entry, which is expressed by no other layer
-  listing it, so the old "nothing imports cmd/" rule needs no record of its own.

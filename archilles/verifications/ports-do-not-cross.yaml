@@ -1,0 +1,7 @@
+name: ports-do-not-cross
+deny:
+  between: [read, emit, enforce, render]
+note: >-
+  The four port sets face outward in different directions and must not reach each
+  other. `between` denies edges across the listed sets while permitting edges
+  inside one, so adapter-golang may still implement the interface adapter declares.

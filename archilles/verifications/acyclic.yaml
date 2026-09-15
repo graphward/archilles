@@ -1,0 +1,6 @@
+name: acyclic
+require: acyclic
+note: >-
+  Go rejects import cycles between packages, so this is only load-bearing at the
+  component level, where several packages collapse into one node and a cycle can
+  appear that the compiler never sees.

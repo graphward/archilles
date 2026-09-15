@@ -1,0 +1,4 @@
+name: render
+paths: [pkg/render]
+note: >-
+  Turns a diff into json, mermaid or text.

@@ -1,5 +1,0 @@
-name: emit
-path: pkg/emit
-layer: emit
-tags:
-  lang: go

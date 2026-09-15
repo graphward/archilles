@@ -1,0 +1,4 @@
+name: read
+paths: [pkg/adapter]
+note: >-
+  Extracts an existing codebase into the normalized graph.

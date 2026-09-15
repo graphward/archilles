@@ -1,0 +1,4 @@
+name: model
+paths: [pkg/graph, internal/archgate]
+note: >-
+  Pure types and set operations.

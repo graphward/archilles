@@ -1,0 +1,4 @@
+name: entry
+paths: [cmd]
+note: >-
+  Thin wrappers. Nothing may import them.

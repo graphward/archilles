@@ -1,5 +1,0 @@
-name: enforce
-path: pkg/enforce
-layer: enforce
-tags:
-  lang: go

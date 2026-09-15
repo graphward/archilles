@@ -1,0 +1,4 @@
+name: core
+paths: [pkg/design, pkg/rules, pkg/ledger]
+note: >-
+  Knows nothing of any language, toolchain or output format.
