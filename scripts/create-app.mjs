@@ -39,6 +39,23 @@ delete manifest.default_events;
 
 const orgArg = process.argv[process.argv.indexOf('--org') + 1];
 const org = (process.argv.includes('--org') && orgArg) || process.env.APP_ORG || null;
+
+// A POST to the settings page of an org that does not exist (or that you
+// cannot administer) is redirected, and the manifest field is dropped along
+// the way - GitHub then reports the manifest as invalid or missing "url",
+// which looks like a bad manifest but is really a bad target. Fail loudly here.
+if (org) {
+  const r = await fetch(`https://api.github.com/orgs/${org}`, {
+    headers: { accept: 'application/vnd.github+json', 'user-agent': 'archilles-setup' },
+  });
+  if (!r.ok) {
+    console.error(`Organization "${org}" not found (GitHub returned ${r.status}).`);
+    console.error('Create it first at https://github.com/account/organizations/new,');
+    console.error(`or drop --org to create the App under your personal account.`);
+    process.exit(1);
+  }
+}
+
 const newAppUrl = org
   ? `https://github.com/organizations/${org}/settings/apps/new`
   : 'https://github.com/settings/apps/new';
