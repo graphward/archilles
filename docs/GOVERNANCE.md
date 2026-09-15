@@ -1,5 +1,7 @@
 # Governance and agent identities
 
+> The reusable form of this lives in `.claude/skills/archilles-governance/`, which is the version other projects adopt. This document is archilles' own instantiation of it, and records the decisions specific to this repo.
+
 The thesis of `archilles` is that humans own the design and agents never write it. That only means something if it is enforced by the platform rather than by instructions in a prompt. This document records how far that enforcement currently reaches, and where it falls back to convention.
 
 ## Agent identities
@@ -36,11 +38,26 @@ Repeat for each of the five.
 
 ### Key handling
 
-App private keys live in the secret store the consuming runtime uses — Actions secrets for `archilles-bot` and `archilles-release`, the orchestrator runtime's secret manager for the agent Apps. One key per environment, rotated on a schedule. **An agent is never handed a key for a role it does not hold**: an engineer run has no path to an architect token. `.secrets/` is a staging area for the initial handoff into those stores, not the store itself — clear it once the keys are placed.
+App private keys live in the secret store the agent runtime uses, one key per environment, rotated on a schedule. **An agent is never handed a key for a role it does not hold**: an engineer run has no path to an architect token. That separation is the whole reason for five Apps instead of one, so a runtime that mounts all five keys into every agent has thrown away the model.
+
+`.secrets/<app>/` is where `create-app.mjs` stages a newly created key (mode 0600, gitignored). It is a staging area for the handoff into the real store, not the store — clear it once the keys are placed.
+
+### Acting as an App
+
+Agents authenticate locally, not through CI. `scripts/as-app.sh` mints a repo-scoped installation token that expires in an hour and runs a command with the App's token and bot author set, so the commit is attributed to `<app>[bot]`:
+
+```bash
+scripts/as-app.sh archilles-engineer git push -u origin feat/thing
+scripts/as-app.sh archilles-architect gh pr create --fill
+```
+
+`scripts/app-token.mjs <app> --env` prints the exports for a longer-lived shell. Tokens are never written to disk.
+
+Role instructions live in [`.claude/agents/`](../.claude/agents/), one per App. **Each agent's tool list must agree with its App's permissions** — the orchestrator holds `contents: read` and correspondingly has no `Edit` or `Write` tool. Where the two disagree, the weaker one is the real policy.
 
 ## Rulesets
 
-Governance lives in [`.github/rulesets/`](../.github/rulesets/) and is applied by [`apply-rulesets.yml`](../.github/workflows/apply-rulesets.yml) on change, or locally via `scripts/apply-rulesets.sh`.
+Governance lives in [`.github/rulesets/`](../.github/rulesets/) and is applied by `scripts/apply-rulesets.sh`. This is run by an agent, not by CI — the roles below are agents that act as their App, not workflow jobs.
 
 | File | Effect |
 |---|---|
