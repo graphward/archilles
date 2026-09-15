@@ -1,0 +1,8 @@
+apiVersion: archilles/v1
+kind: Component
+metadata:
+  name: adapter-golang
+spec:
+  layer: read
+  repo: graphward/archilles
+  path: pkg/adapter/golang
