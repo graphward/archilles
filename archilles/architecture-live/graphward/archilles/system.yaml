@@ -1,4 +1,3 @@
-apiVersion: archilles/v1
 kind: System
 metadata:
   name: archilles

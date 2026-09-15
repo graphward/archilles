@@ -1,4 +1,3 @@
-apiVersion: archilles/v1
 kind: Org
 metadata:
   name: graphward

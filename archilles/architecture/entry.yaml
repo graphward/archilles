@@ -1,4 +1,3 @@
-apiVersion: archilles/v1
 kind: Layer
 metadata:
   name: entry
