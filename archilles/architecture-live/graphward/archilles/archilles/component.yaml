@@ -1,7 +1,1 @@
-kind: Component
-metadata:
-  name: archilles
-spec:
-  layer: entry
-  repo: graphward/archilles
-  path: cmd/archilles
+path: cmd/archilles

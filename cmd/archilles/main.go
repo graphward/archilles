@@ -14,15 +14,10 @@ import (
 	"archilles/pkg/adapter/golang"
 )
 
+// A component is a directory in the live tree. Its name is the directory's.
 type component struct {
-	Metadata struct {
-		Name string `yaml:"name"`
-	} `yaml:"metadata"`
-	Spec struct {
-		Layer string `yaml:"layer"`
-		Repo  string `yaml:"repo"`
-		Path  string `yaml:"path"`
-	} `yaml:"spec"`
+	Name string
+	Path string `yaml:"path"`
 }
 
 func main() {
@@ -43,9 +38,9 @@ func main() {
 	for _, p := range pkgs {
 		best := -1
 		for _, c := range comps {
-			if (p.Dir == c.Spec.Path || strings.HasPrefix(p.Dir, c.Spec.Path+"/")) && len(c.Spec.Path) > best {
-				best = len(c.Spec.Path)
-				owner[p.Dir] = c.Metadata.Name
+			if (p.Dir == c.Path || strings.HasPrefix(p.Dir, c.Path+"/")) && len(c.Path) > best {
+				best = len(c.Path)
+				owner[p.Dir] = c.Name
 			}
 		}
 		if best < 0 {
@@ -57,8 +52,8 @@ func main() {
 
 	var missing []string
 	for _, c := range comps {
-		if !used[c.Metadata.Name] {
-			missing = append(missing, c.Metadata.Name)
+		if !used[c.Name] {
+			missing = append(missing, c.Name)
 		}
 	}
 
@@ -118,10 +113,11 @@ func loadComponents(live string) ([]component, error) {
 		if err := yaml.Unmarshal(b, &c); err != nil {
 			return fmt.Errorf("%s: %w", path, err)
 		}
+		c.Name = filepath.Base(filepath.Dir(path))
 		comps = append(comps, c)
 		return nil
 	})
-	sort.Slice(comps, func(i, j int) bool { return comps[i].Metadata.Name < comps[j].Metadata.Name })
+	sort.Slice(comps, func(i, j int) bool { return comps[i].Name < comps[j].Name })
 	return comps, err
 }
 

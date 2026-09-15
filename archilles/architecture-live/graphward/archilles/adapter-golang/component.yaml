@@ -1,7 +1,1 @@
-kind: Component
-metadata:
-  name: adapter-golang
-spec:
-  layer: read
-  repo: graphward/archilles
-  path: pkg/adapter/golang
+path: pkg/adapter/golang
