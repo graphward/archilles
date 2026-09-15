@@ -1,93 +1,147 @@
 # archilles — intended architecture
 
-Hand-drawn rendering of the intended component graph, in the conventions `pkg/render/mermaid` will emit. When step 5 of the build order lands, `archilles graph --intended` must reproduce this; a mismatch is a bug in the renderer or in this drawing, and finding out which is the point of drawing it first.
+**Status: draft for review. Every record in `archilles/` is `status: proposed`.**
 
-**Status: draft for review. Not accepted.** The open decisions are listed at the bottom — they are design choices the drawing forced, and they are James's to make, not settled by having been drawn.
+This document is the *output* end of a chain that starts with data on disk:
 
-## Intended graph
-
-Solid edge = allowed and expected. Edges are default-deny: anything not drawn here is a violation.
-
-```mermaid
-graph TD
-  subgraph L0["entry"]
-    cli["cli<br/><small>cmd/archilles</small>"]
-    vet["vet<br/><small>cmd/archilles-vet</small>"]
-    toolexec["toolexec<br/><small>cmd/archilles-toolexec</small>"]
-  end
-
-  subgraph L1["adapter"]
-    adapteri["adapter<br/><small>pkg/adapter</small>"]
-    adaptergo["adapter-go<br/><small>pkg/adapter/golang</small>"]
-    analyzer["analyzer<br/><small>pkg/analyzer</small>"]
-  end
-
-  subgraph L2["render"]
-    rjson["render-json<br/><small>pkg/render/json</small>"]
-    rmermaid["render-mermaid<br/><small>pkg/render/mermaid</small>"]
-  end
-
-  subgraph L3["core"]
-    design["design<br/><small>pkg/design</small>"]
-    rules["rules<br/><small>pkg/rules</small>"]
-    ledger["ledger<br/><small>pkg/ledger</small>"]
-  end
-
-  subgraph L4["model"]
-    gmodel["graph<br/><small>pkg/graph</small>"]
-  end
-
-  cli --> design
-  cli --> rules
-  cli --> adapteri
-  cli --> adaptergo
-  cli --> rjson
-  cli --> rmermaid
-  cli --> gmodel
-
-  vet --> analyzer
-  toolexec --> design
-  toolexec --> gmodel
-
-  analyzer --> design
-  analyzer --> gmodel
-
-  adapteri --> design
-  adapteri --> gmodel
-  adaptergo --> adapteri
-  adaptergo --> design
-  adaptergo --> gmodel
-
-  rjson --> design
-  rjson --> gmodel
-  rmermaid --> design
-  rmermaid --> gmodel
-
-  rules --> design
-  rules --> gmodel
-  design --> ledger
-  design --> gmodel
-  ledger --> gmodel
+```
+archilles/design.yaml          components, tags, explicit allowed edges   <- human-authored INPUT
+archilles/principles/*.yaml    scoped rules (layer, forbid-edge, ownership)
+archilles/decisions/*.yaml     one record per non-obvious choice
+        |
+        |  archilles resolve          fold records -> flat rule list
+        v
+archilles/resolved.json        13 components, 34 rules                    <- derived, checked in
+        |
+        |  archilles graph --intended
+        v
+docs/intended.mmd              29 edges across 5 layers                   <- derived, checked in
 ```
 
-## What the drawing asserts
+`resolved.json` and `intended.mmd` are checked in so that when `pkg/design` and `pkg/render/mermaid` land, `archilles resolve` and `archilles graph --intended` must reproduce them **byte for byte**. A mismatch is a bug in the implementation or in this fold, and finding out which is the reason for writing them before the parser exists.
 
-- **`graph` depends on nothing.** It is the normalized model — `Node`, `Edge`, `Level`, `Collapse`, the diff. Pure types and set operations, no I/O, no knowledge of YAML, Go, or rendering. Everything points at it; it points at nothing.
-- **Core never points up.** `design`, `rules`, `ledger` know nothing of adapters or renderers. This is the rule that makes a second language adapter possible without touching core.
-- **Language-awareness is confined to `L1`.** `adapter-go` and `analyzer` are the only components that may import `go/types`, `go/packages`, or `go list`. Core operating on the normalized graph is what makes the Terragrunt adapter a v1 addition rather than a rewrite.
-- **Renderers are siblings of adapters, not of each other's consumers.** Both read the diff and the design; neither knows the other exists. `render-json` is the contract — `render-mermaid` and the text output are renderings of the same struct.
-- **Nothing imports `cmd/`.** Three entrypoints, each a thin wrapper: `cli` wires everything, `vet` wraps only the analyzer, `toolexec` needs only enough to check a package's imports against the resolved design.
+Both derived files were produced mechanically from the input by a throwaway script, not folded in someone's head. That makes the byte-for-byte check a test of **format and ordering**, not an independent human cross-check.
 
-## Open decisions — for review, not settled
+## The intended graph
 
-1. **Is `analyzer` an adapter?** I placed it in `L1` because it is Go-specific — it reads Go imports via `go/analysis`, which is exactly the language-awareness the layering confines to adapters. But the handoff lists it as `pkg/analyzer`, a sibling of `pkg/adapter`, not underneath it. If it stays at `pkg/analyzer` while being language-aware, the "adapters are the only language-aware code" principle needs rewording, or the package needs moving to `pkg/adapter/golang/analyzer`. **This is a real conflict in the handoff, not a drawing detail.**
+```mermaid
+%% Generated by archilles graph --intended
+graph TD
+  subgraph layer_entry["entry"]
+    cli["cli"]
+    toolexec["toolexec"]
+    vet["vet"]
+  end
+  subgraph layer_adapter["adapter"]
+    adapter["adapter"]
+    adapter_go["adapter-go"]
+    analyzer["analyzer"]
+  end
+  subgraph layer_render["render"]
+    render_json["render-json"]
+    render_mermaid["render-mermaid"]
+  end
+  subgraph layer_core["core"]
+    design["design"]
+    ledger["ledger"]
+    rules["rules"]
+  end
+  subgraph layer_model["model"]
+    archgate["archgate"]
+    graph["graph"]
+  end
+  adapter --> design
+  adapter --> graph
+  adapter_go --> adapter
+  adapter_go --> design
+  adapter_go --> graph
+  analyzer --> design
+  analyzer --> graph
+  cli --> adapter
+  cli --> adapter_go
+  cli --> archgate
+  cli --> design
+  cli --> graph
+  cli --> render_json
+  cli --> render_mermaid
+  cli --> rules
+  design --> graph
+  design --> ledger
+  ledger --> graph
+  render_json --> design
+  render_json --> graph
+  render_mermaid --> design
+  render_mermaid --> graph
+  rules --> design
+  rules --> graph
+  toolexec --> archgate
+  toolexec --> design
+  toolexec --> graph
+  vet --> analyzer
+  vet --> archgate
+```
 
-2. **Does `render` belong in the layer order at all?** The handoff's example principle is `order: [entry, adapter, core]` and goal 1 suggests `entry → adapter → core → model`. Renderers fit nowhere in that line. I invented an `L2` for them.
+## Canonical form
 
-3. **The `layer` kind is linear and cannot express siblings.** `adapter` and `render` are independent — neither should import the other. A linear order permits whichever is listed higher to import the lower one. Expressing "these two are parallel" needs either a `forbid-edge` pair alongside the layer rule, or a non-linear layer kind, which would be a fifth rule kind and is out of scope for v0. A `forbid-edge` pair is the v0-shaped answer, but it means the layer rule alone does not carry the intent.
+"Byte-identical output" is meaningless without these stated, so they are part of the design, not implementation detail.
 
-4. **Does `ledger` depend on `graph`?** Drawn as yes, on the assumption records carry selectors expressed over node/tag types. If records are pure data with no reference to the graph model, this edge should be deleted and `ledger` becomes a second dependency-free leaf.
+**`resolved.json`** — JSON, 2-space indent, trailing newline. Top level `version`, `components`, `rules`, in that order.
+- `components` sorted by `id`; each is `{id, path, tags}` with `tags` keys sorted.
+- `rules` are principles first in `id` order, then `design.yaml` edges as `allow-edge` rules sorted by `(from, to)` and numbered `E0001`+.
+- Every rule carries `origin` — the file it was folded from — so a diff violation can name the rule that denied it.
 
-5. **`design → ledger`, or the reverse?** Drawn with `design` folding records held by `ledger`. The alternative is `ledger` owning the fold and `design` consuming the result, which flips the edge. The handoff puts "resolver (fold principles+exceptions → rules)" in `pkg/design` and "append-only, fold" in `pkg/ledger` — both claim the fold.
+**`intended.mmd`** — `graph TD`, 2-space indent.
+- One `subgraph` per distinct `tags.layer`, emitted in the order declared by the `layer` principle; any layer not in that order follows, sorted. No nesting beyond `tags.layer`.
+- Components within a subgraph sorted by `id`. Node id is the component id with `-` replaced by `_`; the label is the unmodified id.
+- All subgraphs are emitted before any edge. Edges sorted by `(from, to)`.
+- Allowed-and-present edges are `-->`. The overlay conventions for `-.->` violations, dotted-grey dead edges and dashed missing-component boxes do not appear here because `--intended` has no actual graph to compare against.
 
-6. **`internal/archgate` is not drawn.** It is generated, gitignored, and imported by every `main` for its side effect of failing the build when absent. It is a component by the path-prefix rule and will show as `undeclared-component` unless the design names it or the extractor excludes generated files.
+**No hash field.** `DesignHash` in the compile gate and `resolved_hash` in the diff output both require a canonical serialization to hash over. The ordering above is a start, but the hash cannot be written by hand and is deliberately absent rather than invented. See open decision 3.
+
+## What the design asserts
+
+- **`graph` depends on nothing.** The normalized model — `Node`, `Edge`, `Level`, `Collapse`, the diff. Pure types and set operations; no I/O, no knowledge of YAML, Go, or rendering. Everything points at it; it points at nothing.
+- **Core never points up.** `design`, `rules`, `ledger` know nothing of adapters or renderers (P0002). This is what makes a second language adapter an addition rather than a rewrite.
+- **Language-awareness is confined to the adapter layer.** `adapter-go` and `analyzer` carry `lang: go` and are the only components that may import `go/types`, `go/packages`, or shell out to `go list`.
+- **Renderers are siblings of adapters** (P0004), not consumers of each other. `render-json` is the CI contract; Mermaid and text are renderings of the same struct.
+- **Nothing imports `cmd/`** (P0003). Three thin entrypoints: `cli` wires everything, `vet` wraps only the analyzer, `toolexec` needs just enough to check imports against the resolved design.
+
+## Findings from folding this by hand
+
+### 1. The `layer` kind does not say whether same-layer edges are allowed
+
+The handoff states edges "may only go downward in the order". Read strictly, **three of archilles' own intended edges violate its own layering principle**:
+
+| edge | layer |
+|---|---|
+| `adapter-go -> adapter` | both `adapter` |
+| `design -> ledger` | both `core` |
+| `rules -> design` | both `core` |
+
+All three are obviously correct dependencies — a Go adapter implementing the `Adapter` interface, a resolver folding ledger records, rules evaluating against the design. So either `layer` permits same-layer edges by definition and the handoff's wording needs fixing, or it does not and every intra-layer dependency needs an explicit `allow-edge` that the layer rule then has to be defined not to override.
+
+This is a semantics decision for the `layer` kind, and it must be settled before `pkg/rules` is written. It is the first thing hand-authoring the design caught.
+
+### 2. `analyzer` is Go-specific but sits outside `pkg/adapter`
+
+Drawn in the `adapter` layer and tagged `lang: go`, because it reads Go imports via `go/analysis` — exactly the language-awareness the design confines to adapters. But the handoff places it at `pkg/analyzer`, a sibling of `pkg/adapter`, not underneath it. Either the principle is reworded, or the package moves to `pkg/adapter/golang/analyzer`. As drawn, the layer tag and the directory disagree.
+
+### 3. `resolved.json` needs a canonical serialization before any hash means anything
+
+`DesignHash`, `ActualHash` and `resolved_hash` are load-bearing — the compile gate and the `resolved-drift` diff category both rest on them — but nothing yet defines what is hashed. Key order, whitespace, unicode escaping and float formatting all have to be pinned. Left absent rather than guessed.
+
+### 4. The `render` layer is invented
+
+The handoff's example is `order: [entry, adapter, core]` and goal 1 suggests `entry -> adapter -> core -> model`. Renderers fit nowhere in that line, so `render` was added between `adapter` and `core`.
+
+### 5. The linear `layer` kind cannot express siblings
+
+`adapter` and `render` are independent; neither should import the other. A linear order only denies one direction. P0004 carries the other half as an explicit `forbid-edge`, which means the layer rule alone does not carry the intent — and if the order is ever changed, P0004 has to be changed with it or it silently protects nothing.
+
+### 6. `archgate` is declared, and that may be wrong
+
+`internal/archgate` is generated, gitignored, and imported by all three `main`s for the side effect of failing the build when absent. It is declared here with `generated: "true"` so it does not report as `undeclared-component`. But because it is gitignored, a fresh clone has no such directory and it will instead report as `missing-component` — the design asserts a component that is absent by construction. v0 has no concept of a generated or optional component, and one of: the extractor skipping generated paths, a `generated` tag the differ honours, or simply not declaring it, has to be chosen.
+
+### 7. `design -> ledger` may point the wrong way
+
+Drawn with `design` folding records held by `ledger`. The handoff puts "resolver (fold principles+exceptions -> rules)" in `pkg/design` and "append-only, fold" in `pkg/ledger` — both claim the fold. Whichever owns it, the other points at it.
