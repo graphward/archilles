@@ -28,6 +28,7 @@ if (!app) {
 }
 
 const PORT = Number(process.env.PORT || 8787);
+const REPO = process.env.REPO || 'graphward/archilles';
 const manifest = JSON.parse(readFileSync(`.github/app-manifests/${app}.json`, 'utf8'));
 delete manifest._comment;
 // localhost is fine for redirect_url - GitHub explicitly supports it for this
@@ -115,13 +116,16 @@ const server = createServer(async (req, res) => {
     write('webhook-secret.txt', body.webhook_secret ?? '');
 
     const varName = app.toUpperCase().replace(/-/g, '_') + '_APP_ID';
+    const installUrl = org
+      ? `https://github.com/organizations/${org}/settings/apps/${body.slug}/installations`
+      : `https://github.com/settings/apps/${body.slug}/installations`;
     res.writeHead(200, { 'content-type': 'text/html' });
     res.end(`<body style="font:14px system-ui;padding:3rem">
       <h2>Created <code>${body.slug}</code> (id ${body.id})</h2>
       <p>Credentials written to <code>${dir}/</code> (gitignored, mode 0600).</p>
-      <p><b>Next:</b> <a href="https://github.com/settings/apps/${body.slug}/installations">install it on jameslett/archilles</a>,
+      <p><b>Next:</b> <a href="${installUrl}">install it on ${REPO}</a>,
       then record the App id as a repo variable:</p>
-      <pre>gh variable set ${varName} --body ${body.id} --repo jameslett/archilles</pre>
+      <pre>gh variable set ${varName} --body ${body.id} --repo ${REPO}</pre>
       <p>You can close this tab.</p>`);
     console.log(`${body.slug}\tid=${body.id}\tcreds=${dir}/`);
     return server.close(() => process.exit(0));

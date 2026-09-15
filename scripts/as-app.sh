@@ -18,7 +18,7 @@ if [ -z "$app" ] || [ $# -lt 2 ]; then
 fi
 shift
 
-repo="${REPO:-jameslett/archilles}"
+repo="${REPO:-graphward/archilles}"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 GH_TOKEN="$(node "$here/app-token.mjs" "$app" --repo "$repo")"

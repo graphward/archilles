@@ -7,7 +7,7 @@
 #   scripts/apply-rulesets.sh               # full target state, main.json
 set -euo pipefail
 
-REPO="${REPO:-jameslett/archilles}"
+REPO="${REPO:-graphward/archilles}"
 shopt -s nullglob
 
 for f in .github/rulesets/*.json; do

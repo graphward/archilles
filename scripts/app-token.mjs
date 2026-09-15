@@ -23,7 +23,7 @@ if (!app) {
 }
 
 const repoArg = process.argv[process.argv.indexOf('--repo') + 1];
-const REPO = (process.argv.includes('--repo') && repoArg) || process.env.REPO || 'jameslett/archilles';
+const REPO = (process.argv.includes('--repo') && repoArg) || process.env.REPO || 'graphward/archilles';
 const [owner, repoName] = REPO.split('/');
 
 const dir = `.secrets/${app}`;

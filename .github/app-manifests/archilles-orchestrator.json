@@ -1,7 +1,7 @@
 {
   "name": "archilles-orchestrator",
   "description": "Plans, delegates, files change requests, comments. Deliberately has no contents:write - it coordinates, it does not commit.",
-  "url": "https://github.com/jameslett/archilles",
+  "url": "https://github.com/graphward/archilles",
   "public": false,
   "default_events": [],
   "default_permissions": {

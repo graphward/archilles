@@ -1,7 +1,7 @@
 {
   "name": "archilles-engineer",
   "description": "Implements tasks and opens PRs. Cannot touch design, schema, or CI config; cannot approve; cannot merge.",
-  "url": "https://github.com/jameslett/archilles",
+  "url": "https://github.com/graphward/archilles",
   "public": false,
   "default_events": [],
   "default_permissions": {

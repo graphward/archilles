@@ -1,7 +1,7 @@
 {
   "name": "archilles-architect",
   "description": "Proposes design changes on design/* branches. The only App allowed to touch archilles/** and schema/**. Cannot merge; owner review required.",
-  "url": "https://github.com/jameslett/archilles",
+  "url": "https://github.com/graphward/archilles",
   "public": false,
   "default_events": [],
   "default_permissions": {

@@ -1,7 +1,7 @@
 {
   "name": "archilles-bot",
   "description": "Runs diff, posts sticky PR comments, opens drift PRs on archilles-bot/*. Renovate-shaped. Later the federation stitcher.",
-  "url": "https://github.com/jameslett/archilles",
+  "url": "https://github.com/graphward/archilles",
   "public": false,
   "default_events": [],
   "default_permissions": {

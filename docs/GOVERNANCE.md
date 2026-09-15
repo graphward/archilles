@@ -33,7 +33,7 @@ node scripts/create-app.mjs archilles-engineer --org <org>   # browser opens, cl
 Credentials are written to `.secrets/<app>/` (gitignored, mode 0600): `private-key.pem`, `app.json`, `client-secret.txt`, `webhook-secret.txt`. Then install the App on the repo and record its id, which the rulesets reference:
 
 ```bash
-gh variable set ARCHILLES_ENGINEER_APP_ID --body <id> --repo jameslett/archilles
+gh variable set ARCHILLES_ENGINEER_APP_ID --body <id> --repo graphward/archilles
 ```
 
 Repeat for each of the five.
@@ -69,17 +69,15 @@ Governance lives in [`.github/rulesets/`](../.github/rulesets/) and is applied b
 | `branch-owner-design.json` | `design/*` blocked for everyone, bypassed by `archilles-architect` and admins. |
 | `branch-owner-bot.json` | `archilles-bot/*` blocked for everyone, bypassed by `archilles-bot` and admins. |
 | `tags.json` | `v*` tags: creation by `archilles-release` only; no update, no deletion. |
-| `paths.org-only.json` | Restricts pushes touching `archilles/**`, `schema/**`, `.github/**`. **Inert today — see below.** |
+| `paths.org-only.json` | Push-time restriction on `archilles/**`, `schema/**`, `.github/**`; bypassed by `archilles-architect` and admins. Live now that the repo is org-owned. |
 
 Per-actor branch ownership is expressed the way rulesets express it: block the pattern for everybody, then list the one App as a bypass actor.
 
-## Two constraints on a personal repo
+## Why this repo lives in an org
 
-Both are consequences of `archilles` living at `jameslett/archilles` rather than in an organization. Neither is a bug in the design; they are the platform's limits.
+`archilles` was seeded at `jameslett/archilles` and transferred to `graphward/archilles` on 2026-09-15. That was not cosmetic.
 
-### 1. Path restriction cannot be enforced
-
-The handoff specifies that a write to `archilles/**`, `schema/**`, or `.github/**` by any actor other than the architect App is *rejected at push*. That is a **push ruleset**, and GitHub refuses it here:
+The handoff specifies that a write to `archilles/**`, `schema/**`, or `.github/**` by any actor other than the architect App is *rejected at push*. That is a **push ruleset**, and GitHub refuses push rulesets on personal repos:
 
 ```
 422 Validation Failed
@@ -87,13 +85,15 @@ The handoff specifies that a write to `archilles/**`, `schema/**`, or `.github/*
   Source only org-owned repos can have push rules
 ```
 
-Push rulesets require an org-owned repository. Until `archilles` moves to an org, the only guard on those paths is `CODEOWNERS`, which is **review-time, not push-time**: an agent can commit to `archilles/**` on its own branch and open a PR, and nothing stops the push — only the merge. The claim "enforced by ruleset path restrictions, not by instruction" is not currently true, and `CLAUDE.md` states the restriction as an instruction as the interim fallback.
+On a personal repo the only guard on those paths would be `CODEOWNERS`, which is **review-time, not push-time**: an agent could commit to the design on its own branch and open a PR, and nothing would stop the push — only the merge. "Enforced by ruleset path restrictions, not by instruction" would have been false. Under `graphward` it is true, and `paths.org-only.json` is live.
 
-Moving the repo to a free organization restores push-time enforcement and costs nothing; `paths.org-only.json` is written and ready to apply the moment that happens.
+The same reasoning applies to the Apps: a private App can only be installed on the account that owns it, and ownership is fixed at creation, so the five Apps are owned by `graphward` rather than by James personally.
 
-### 2. Required approvals deadlock the owner's own PRs
+## One constraint that remains
 
-GitHub does not permit approving your own pull request. With `required_approving_review_count: 1` and James as the sole human:
+### Required approvals deadlock the owner's own PRs
+
+GitHub does not permit approving your own pull request. With `required_approving_review_count: 1` and James as the sole human in `graphward`:
 
 - an **agent's** PR works as designed — James is a different identity and can approve it;
 - **James's own** PR can never reach one approval, and bypass actors are empty by design.
