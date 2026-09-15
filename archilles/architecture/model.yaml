@@ -1,0 +1,4 @@
+name: model
+paths: [pkg/graph, internal/archgate]
+note: >-
+  The normalized graph: pure types and set operations, no I/O.

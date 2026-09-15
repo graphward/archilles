@@ -1,0 +1,5 @@
+name: core
+paths: [pkg/design, pkg/rules, pkg/ledger]
+note: >-
+  The design model, its resolution, and the records it folds. Knows nothing
+  of any language, toolchain or output format.
