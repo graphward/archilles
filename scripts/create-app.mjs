@@ -5,6 +5,12 @@
 // browser, you click "Create GitHub App" once, and the redirect is captured here.
 //
 //   node scripts/create-app.mjs archilles-engineer
+//   node scripts/create-app.mjs archilles-engineer --org my-org
+//
+// Ownership matters and is not changeable afterwards: an App marked private
+// can only be installed on the account that owns it. If the repo is going to
+// live in an org, create the Apps under that org (--org) or you will recreate
+// all five after the transfer.
 //
 // Credentials land in .secrets/<app>/ (gitignored, mode 0600). Nothing is
 // printed to stdout except the App id and slug.
@@ -24,8 +30,18 @@ if (!app) {
 const PORT = Number(process.env.PORT || 8787);
 const manifest = JSON.parse(readFileSync(`.github/app-manifests/${app}.json`, 'utf8'));
 delete manifest._comment;
+// localhost is fine for redirect_url - GitHub explicitly supports it for this
+// flow - but a hook url must be publicly reachable and is validated even when
+// active:false. These Apps are agent-driven and poll, so they get no webhook.
 manifest.redirect_url = `http://localhost:${PORT}/callback`;
-manifest.hook_attributes = { url: `http://localhost:${PORT}/hook`, active: false };
+manifest.hook_attributes = { active: false };
+delete manifest.default_events;
+
+const orgArg = process.argv[process.argv.indexOf('--org') + 1];
+const org = (process.argv.includes('--org') && orgArg) || process.env.APP_ORG || null;
+const newAppUrl = org
+  ? `https://github.com/organizations/${org}/settings/apps/new`
+  : 'https://github.com/settings/apps/new';
 
 const state = randomBytes(16).toString('hex');
 const perms = Object.entries(manifest.default_permissions).map(([k, v]) => `${k}:${v}`).join(', ');
@@ -33,8 +49,9 @@ const page = `<!doctype html><meta charset="utf-8"><title>Create ${app}</title>
 <body style="font:14px system-ui;padding:3rem;max-width:40rem;margin:auto">
 <h2>Create GitHub App: <code>${app}</code></h2>
 <p>${manifest.description}</p>
+<p><b>Owner:</b> ${org ? `organization <code>${org}</code>` : 'your personal account'}</p>
 <p><b>Permissions:</b> ${perms}</p>
-<form id=f method=post action="https://github.com/settings/apps/new?state=${state}">
+<form id=f method=post action="${newAppUrl}?state=${state}">
   <input type=hidden name=manifest value='${JSON.stringify(manifest).replace(/'/g, '&apos;')}'>
   <button type=submit style="font-size:1rem;padding:.6rem 1.2rem">Continue to GitHub &rarr;</button>
 </form>

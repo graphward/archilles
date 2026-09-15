@@ -25,8 +25,10 @@ Manifests are in [`.github/app-manifests/`](../.github/app-manifests/), one file
 The REST API cannot create a GitHub App from a PAT — GitHub only supports the [App Manifest flow](https://docs.github.com/apps/sharing-github-apps/registering-a-github-app-from-a-manifest), which requires a browser click. `scripts/create-app.mjs` drives that flow so the permission set comes from the manifest rather than fifteen hand-set dropdowns:
 
 ```bash
-node scripts/create-app.mjs archilles-engineer     # browser opens, click "Create GitHub App"
+node scripts/create-app.mjs archilles-engineer --org <org>   # browser opens, click "Create GitHub App"
 ```
+
+**Create these under the org, not under `jameslett`.** A private App can only be installed on the account that owns it, and ownership is fixed at creation — creating them personally and then transferring the repo means building all five again. Since the org move is what makes `paths.org-only.json` applicable anyway, do the move first and the Apps second.
 
 Credentials are written to `.secrets/<app>/` (gitignored, mode 0600): `private-key.pem`, `app.json`, `client-secret.txt`, `webhook-secret.txt`. Then install the App on the repo and record its id, which the rulesets reference:
 

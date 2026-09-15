@@ -39,9 +39,11 @@ The REST API cannot create a GitHub App from a token — GitHub only supports th
 
 ```bash
 for app in engineer architect orchestrator bot release; do
-  node scripts/create-app.mjs "<prefix>-$app"
+  node scripts/create-app.mjs "<prefix>-$app" --org <org>   # omit --org for a personal repo
 done
 ```
+
+**Decide ownership before you start.** An App marked `public: false` can only be installed on the account that owns it, and ownership cannot be changed afterwards. If the repo will live in an organization, create the Apps under that org — otherwise the transfer orphans all five and you rebuild them. Two other manifest constraints GitHub enforces at submit time: `hook_attributes.url` must be publicly reachable, so omit it entirely for poll-driven agents (`{"active": false}`), and `default_events` is meaningless without a webhook.
 
 Each writes `.secrets/<app>/{private-key.pem,app.json,client-secret.txt,webhook-secret.txt}` at mode 0600. **Gitignore `.secrets/`.** Install each App on the repo, then record its id:
 
