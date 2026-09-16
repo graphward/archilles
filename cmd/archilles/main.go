@@ -117,8 +117,8 @@ func history(root, base string) ([]design.Change, []design.Commit, string, error
 			Justifies: c.Trailers["Justifies"]})
 	}
 	why := strings.TrimSpace(os.Getenv("ARCHILLES_WHY"))
-	if why == "" && len(commits) > 0 {
-		why = commits[len(commits)-1].Body
+	for i := len(commits) - 1; why == "" && i >= 0; i-- {
+		why = strings.TrimSpace(commits[i].Body)
 	}
 	return changes, commits, why, nil
 }
