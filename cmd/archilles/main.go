@@ -1,124 +1,170 @@
-// Command archilles checks a Go module against its own architecture.
+// Command archilles checks a repository against its own architecture.
+//
+//	archilles check                 the standing check: the map matches the territory
+//	archilles plan --base <ref>     what a change does, what it touches, what it breaks
 package main
 
 import (
+	"flag"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
+	"time"
 
-	"github.com/goccy/go-yaml"
-
+	"archilles/pkg/adapter/git"
 	"archilles/pkg/adapter/golang"
+	"archilles/pkg/design"
 )
 
-// A component is a directory in the live tree. Its name is the directory's.
-type component struct {
-	Name string
-	Path string `yaml:"path"`
-}
+const liveRel = "archilles/architecture-live"
 
 func main() {
 	root := "."
-	comps, err := loadComponents(filepath.Join(root, "archilles", "architecture-live"))
-	if err != nil {
+	cmd := "check"
+	args := os.Args[1:]
+	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		cmd, args = args[0], args[1:]
+	}
+	fs := flag.NewFlagSet(cmd, flag.ExitOnError)
+	base := fs.String("base", "", "ref to plan against (plan only)")
+	fs.Parse(args)
+
+	in := design.Input{Today: time.Now().UTC(), LiveRel: liveRel}
+	var err error
+	if in.Records, err = design.Load(root, liveRel); err != nil {
 		fail(err)
 	}
-	pkgs, err := golang.Extract(root)
-	if err != nil {
+	if in.Packages, err = packages(root); err != nil {
 		fail(err)
 	}
 
-	// A package belongs to the component whose path is its longest prefix.
-	owner := map[string]string{}
-	used := map[string]bool{}
-	var unassigned []string
-	for _, p := range pkgs {
-		best := -1
-		for _, c := range comps {
-			if (p.Dir == c.Path || strings.HasPrefix(p.Dir, c.Path+"/")) && len(c.Path) > best {
-				best = len(c.Path)
-				owner[p.Dir] = c.Name
-			}
+	switch cmd {
+	case "check":
+	case "plan":
+		if *base == "" {
+			fail(fmt.Errorf("plan needs --base <ref>"))
 		}
-		if best < 0 {
-			unassigned = append(unassigned, p.Dir)
-		} else {
-			used[owner[p.Dir]] = true
+		if in.Changes, in.Commits, err = history(root, *base); err != nil {
+			fail(err)
 		}
+	default:
+		fail(fmt.Errorf("unknown command %q", cmd))
 	}
 
-	var missing []string
-	for _, c := range comps {
-		if !used[c.Name] {
-			missing = append(missing, c.Name)
-		}
-	}
-
-	// Package imports collapse to component edges.
-	dirOf := map[string]string{}
-	for _, p := range pkgs {
-		dirOf[p.ImportPath] = p.Dir
-	}
-	edgeSet := map[string]bool{}
-	for _, p := range pkgs {
-		from := owner[p.Dir]
-		for _, imp := range p.Imports {
-			to := owner[dirOf[imp]]
-			if from != "" && to != "" && from != to {
-				edgeSet[from+" -> "+to] = true
-			}
-		}
-	}
-	var edges []string
-	for e := range edgeSet {
-		edges = append(edges, e)
-	}
-	sort.Strings(edges)
-
-	fmt.Printf("components  %d\n", len(comps))
-	fmt.Printf("packages    %d\n", len(pkgs))
-	fmt.Printf("unassigned  %d\n", len(unassigned))
-	for _, u := range unassigned {
-		fmt.Printf("  %s\n", u)
-	}
-	fmt.Printf("missing     %d\n", len(missing))
-	for _, m := range missing {
-		fmt.Printf("  %s\n", m)
-	}
-	fmt.Println()
-	for _, e := range edges {
-		fmt.Println(e)
-	}
-
-	if len(unassigned)+len(missing) > 0 {
+	findings := design.Plan(in)
+	report(in, findings)
+	if design.Open(findings) > 0 {
 		os.Exit(1)
 	}
 }
 
-// loadComponents reads every component.yaml under the live tree.
-func loadComponents(live string) ([]component, error) {
-	var comps []component
-	err := filepath.WalkDir(live, func(path string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() || d.Name() != "component.yaml" {
-			return err
+// packages runs the Go adapter and hands design plain directories.
+func packages(root string) ([]design.Package, error) {
+	pkgs, err := golang.Extract(root)
+	if err != nil {
+		return nil, err
+	}
+	dirOf := map[string]string{}
+	for _, p := range pkgs {
+		dirOf[p.ImportPath] = p.Dir
+	}
+	out := make([]design.Package, 0, len(pkgs))
+	for _, p := range pkgs {
+		d := design.Package{Dir: p.Dir}
+		for _, imp := range p.Imports {
+			d.Imports = append(d.Imports, dirOf[imp])
 		}
-		b, err := os.ReadFile(path)
-		if err != nil {
-			return err
+		out = append(out, d)
+	}
+	return out, nil
+}
+
+// history reads what changed since base, with both versions of each record.
+func history(root, base string) ([]design.Change, []design.Commit, error) {
+	changed, err := git.Changed(root, base, "HEAD")
+	if err != nil {
+		return nil, nil, err
+	}
+	var changes []design.Change
+	for _, c := range changed {
+		d := design.Change{Status: c.Status, Path: c.Path, OldPath: c.OldPath}
+		if strings.HasPrefix(c.Path, liveRel+"/") {
+			old := c.Path
+			if c.OldPath != "" {
+				old = c.OldPath
+			}
+			if d.Old, err = git.Show(root, base, old); err != nil {
+				return nil, nil, err
+			}
+			if c.Status != "D" {
+				if d.New, err = os.ReadFile(filepath.Join(root, c.Path)); err != nil {
+					return nil, nil, err
+				}
+			}
 		}
-		var c component
-		if err := yaml.Unmarshal(b, &c); err != nil {
-			return fmt.Errorf("%s: %w", path, err)
+		changes = append(changes, d)
+	}
+	commits, err := git.Commits(root, base, "HEAD")
+	if err != nil {
+		return nil, nil, err
+	}
+	var out []design.Commit
+	for _, c := range commits {
+		out = append(out, design.Commit(c))
+	}
+	return changes, out, nil
+}
+
+func report(in design.Input, findings []design.Finding) {
+	comps := 0
+	for _, r := range in.Records {
+		if r.Kind == "component" {
+			comps++
 		}
-		c.Name = filepath.Base(filepath.Dir(path))
-		comps = append(comps, c)
-		return nil
-	})
-	sort.Slice(comps, func(i, j int) bool { return comps[i].Name < comps[j].Name })
-	return comps, err
+	}
+	fmt.Printf("components  %d\npackages    %d\n", comps, len(in.Packages))
+
+	if len(in.Changes) > 0 {
+		fmt.Println("\nrecords changed")
+		any := false
+		for _, c := range in.Changes {
+			if !strings.HasPrefix(c.Path, liveRel+"/") {
+				continue
+			}
+			any = true
+			p := strings.TrimPrefix(c.Path, liveRel+"/")
+			if c.OldPath != "" {
+				p = strings.TrimPrefix(c.OldPath, liveRel+"/") + " -> " + p
+			}
+			fmt.Printf("  %s  %s\n", c.Status, p)
+		}
+		if !any {
+			fmt.Println("  none")
+		}
+	}
+
+	fmt.Println()
+	if len(findings) == 0 {
+		fmt.Println("findings    none")
+	}
+	last := ""
+	for _, f := range findings {
+		if f.Kind != last {
+			fmt.Println(f.Kind)
+			last = f.Kind
+		}
+		mark := "open"
+		if f.State == "accepted" {
+			mark = "accepted"
+		}
+		line := "  " + f.Subject
+		if f.Detail != "" {
+			line += "   " + f.Detail
+		}
+		fmt.Printf("%-64s %s\n", line, mark)
+	}
+	fmt.Printf("\nopen        %d\n", design.Open(findings))
 }
 
 func fail(err error) {
