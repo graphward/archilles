@@ -45,7 +45,8 @@ func main() {
 		if *base == "" {
 			fail(fmt.Errorf("plan needs --base <ref>"))
 		}
-		if in.Changes, in.Commits, err = history(root, *base); err != nil {
+		in.Planning = true
+		if in.Changes, in.Commits, in.Why, err = history(root, *base); err != nil {
 			fail(err)
 		}
 	default:
@@ -80,11 +81,12 @@ func packages(root string) ([]design.Package, error) {
 	return out, nil
 }
 
-// history reads what changed since base, with both versions of each record.
-func history(root, base string) ([]design.Change, []design.Commit, error) {
+// history reads what changed since base, with both versions of each record,
+// and the one why: the PR body when CI provides it, else the tip commit's.
+func history(root, base string) ([]design.Change, []design.Commit, string, error) {
 	changed, err := git.Changed(root, base, "HEAD")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	var changes []design.Change
 	for _, c := range changed {
@@ -95,25 +97,30 @@ func history(root, base string) ([]design.Change, []design.Commit, error) {
 				old = c.OldPath
 			}
 			if d.Old, err = git.Show(root, base, old); err != nil {
-				return nil, nil, err
+				return nil, nil, "", err
 			}
 			if c.Status != "D" {
 				if d.New, err = os.ReadFile(filepath.Join(root, c.Path)); err != nil {
-					return nil, nil, err
+					return nil, nil, "", err
 				}
 			}
 		}
 		changes = append(changes, d)
 	}
-	commits, err := git.Commits(root, base, "HEAD")
+	raw, err := git.Commits(root, base, "HEAD")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
-	var out []design.Commit
-	for _, c := range commits {
-		out = append(out, design.Commit(c))
+	var commits []design.Commit
+	for _, c := range raw {
+		commits = append(commits, design.Commit{Hash: c.Hash, Subject: c.Subject, Body: c.Body,
+			Justifies: c.Trailers["Justifies"]})
 	}
-	return changes, out, nil
+	why := strings.TrimSpace(os.Getenv("ARCHILLES_WHY"))
+	if why == "" && len(commits) > 0 {
+		why = commits[len(commits)-1].Body
+	}
+	return changes, commits, why, nil
 }
 
 func report(in design.Input, findings []design.Finding) {
@@ -123,9 +130,18 @@ func report(in design.Input, findings []design.Finding) {
 			comps++
 		}
 	}
+	if in.Planning {
+		if why := strings.TrimSpace(in.Why); why != "" {
+			fmt.Println("why")
+			for _, l := range strings.Split(why, "\n") {
+				fmt.Println("  " + l)
+			}
+			fmt.Println()
+		}
+	}
 	fmt.Printf("components  %d\npackages    %d\n", comps, len(in.Packages))
 
-	if len(in.Changes) > 0 {
+	if in.Planning {
 		fmt.Println("\nrecords changed")
 		any := false
 		for _, c := range in.Changes {
@@ -154,15 +170,14 @@ func report(in design.Input, findings []design.Finding) {
 			fmt.Println(f.Kind)
 			last = f.Kind
 		}
-		mark := "open"
-		if f.State == "accepted" {
-			mark = "accepted"
-		}
 		line := "  " + strings.TrimPrefix(f.Subject, liveRel+"/")
 		if f.Detail != "" {
 			line += "   " + f.Detail
 		}
-		fmt.Printf("%-64s %s\n", line, mark)
+		fmt.Printf("%-64s %s\n", line, f.State)
+		if f.By != "" {
+			fmt.Printf("      %s\n", f.By)
+		}
 	}
 	fmt.Printf("\nopen        %d\n", design.Open(findings))
 }

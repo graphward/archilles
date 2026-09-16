@@ -25,11 +25,12 @@ type Change struct {
 	New     []byte
 }
 
-// Commit is what a commit said. The body is the why.
+// Commit is one commit's why and what it says that why is about.
 type Commit struct {
-	Hash    string
-	Subject string
-	Body    string
+	Hash      string
+	Subject   string
+	Body      string
+	Justifies []string // record names, from Justifies: trailers
 }
 
 // Input is everything a plan is computed from. Nothing here is fetched; the
@@ -38,19 +39,23 @@ type Input struct {
 	Records  []Record
 	Packages []Package
 	Changes  []Change // empty for a plain check
-	Commits  []Commit // empty for a plain check
+	Why      string   // the change's one reason: the PR body, or the tip commit's
+	Commits  []Commit // each decision's reason, when it named what it justifies
+	Planning bool     // true for plan, false for the standing check
 	Today    time.Time
 	LiveRel  string
 }
 
-// Finding is one thing to look at. State is open, or accepted when an
-// unexpired exception covers it - the same shape as a security finding with
-// an accepted-risk justification.
+// Finding is one thing to look at. Its state is the security-finding shape:
+// open; justified for this change by a commit that says why; or accepted
+// until a date by an exception record.
 type Finding struct {
 	Kind    string // unassigned missing dangling modified dependent no-why expired
 	Subject string
+	Record  string // the record name this is about, for Justifies: to match
 	Detail  string
-	State   string // open | accepted
+	State   string // open | justified | accepted
+	By      string // the commit that justified it
 }
 
 // Plan computes every finding over the input. With no Changes or Commits it
@@ -96,7 +101,7 @@ func Plan(in Input) []Finding {
 	// --- references resolve --------------------------------------------------
 	for _, r := range refs {
 		if r.Res == nil {
-			out = append(out, Finding{Kind: "dangling", Subject: r.From.Path,
+			out = append(out, Finding{Kind: "dangling", Subject: r.From.Path, Record: r.From.Name,
 				Detail: r.Field + ": " + r.To, State: "open"})
 		}
 	}
@@ -104,11 +109,11 @@ func Plan(in Input) []Finding {
 	// --- exceptions expire ---------------------------------------------------
 	for _, e := range filter(in.Records, "exception") {
 		if exp, ok := parseDate(e.Fields["expires"]); ok && !exp.After(in.Today) {
-			out = append(out, Finding{Kind: "expired", Subject: e.Path, Detail: "expired " + e.Fields["expires"], State: "open"})
+			out = append(out, Finding{Kind: "expired", Subject: e.Path, Record: e.Name, Detail: "expired " + e.Fields["expires"], State: "open"})
 		}
 	}
 
-	if len(in.Changes) == 0 && len(in.Commits) == 0 {
+	if !in.Planning {
 		return sorted(out)
 	}
 
@@ -130,7 +135,7 @@ func Plan(in Input) []Finding {
 		}
 		changedNames = append(changedNames, name)
 		if c.Status == "M" && !anchorOnly(c.Old, c.New) {
-			out = append(out, Finding{Kind: "modified", Subject: c.Path,
+			out = append(out, Finding{Kind: "modified", Subject: c.Path, Record: name,
 				Detail: "edited in place; add a record that supersedes it", State: "open"})
 		}
 	}
@@ -139,17 +144,31 @@ func Plan(in Input) []Finding {
 	for _, name := range changedNames {
 		for _, dep := range Dependents(refs, name) {
 			if !inPR[dep.Path] {
-				out = append(out, Finding{Kind: "dependent", Subject: dep.Path,
+				out = append(out, Finding{Kind: "dependent", Subject: dep.Path, Record: dep.Name,
 					Detail: "references " + name + ", which changed; not in this change", State: "open"})
 			}
 		}
 	}
 
-	// --- every commit carries a why ------------------------------------------
+	// --- a commit that names a record and says why justifies its findings ----
 	for _, c := range in.Commits {
 		if strings.TrimSpace(c.Body) == "" {
-			out = append(out, Finding{Kind: "no-why", Subject: c.Hash[:7], Detail: c.Subject, State: "open"})
+			continue
 		}
+		for _, name := range c.Justifies {
+			for i := range out {
+				if out[i].State == "open" && out[i].Record == name {
+					out[i].State = "justified"
+					out[i].By = c.Hash[:7] + "  " + firstLine(c.Body)
+				}
+			}
+		}
+	}
+
+	// --- the change carries one why ------------------------------------------
+	if strings.TrimSpace(in.Why) == "" {
+		out = append(out, Finding{Kind: "no-why", Subject: "this change",
+			Detail: "no PR body and no commit body to say why", State: "open"})
 	}
 
 	return sorted(out)
@@ -223,6 +242,11 @@ func anchorOnly(old, new []byte) bool {
 func fmtv(v any) string {
 	b, _ := yaml.Marshal(v)
 	return string(b)
+}
+
+func firstLine(s string) string {
+	l, _, _ := strings.Cut(strings.TrimSpace(s), "\n")
+	return l
 }
 
 func parseDate(s string) (time.Time, bool) {

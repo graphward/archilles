@@ -20,6 +20,8 @@ jobs:
           go-version-file: go.mod
       - name: plan
         if: github.event_name == 'pull_request'
+        env:
+          ARCHILLES_WHY: ${{ github.event.pull_request.body }}
         run: go run ./cmd/archilles plan --base origin/${{ github.base_ref }}
       - name: check
         if: github.event_name != 'pull_request'

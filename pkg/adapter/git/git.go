@@ -18,11 +18,13 @@ type Change struct {
 	OldPath string
 }
 
-// Commit is one commit's message, subject and body separated.
+// Commit is one commit's message: subject, body, and the trailers at the
+// end of the body as git interpret-trailers would read them.
 type Commit struct {
-	Hash    string
-	Subject string
-	Body    string
+	Hash     string
+	Subject  string
+	Body     string
+	Trailers map[string][]string
 }
 
 func run(root string, args ...string) ([]byte, error) {
@@ -82,11 +84,30 @@ func Commits(root, base, head string) ([]Commit, error) {
 		if len(f) < 2 || f[0] == "" {
 			continue
 		}
-		c := Commit{Hash: f[0], Subject: f[1]}
+		c := Commit{Hash: f[0], Subject: f[1], Trailers: map[string][]string{}}
 		if len(f) == 3 {
-			c.Body = strings.TrimSpace(f[2])
+			c.Body, c.Trailers = splitTrailers(strings.TrimSpace(f[2]))
 		}
 		commits = append(commits, c)
 	}
 	return commits, nil
+}
+
+// splitTrailers separates the trailer block - the final paragraph, when every
+// line of it is Key: value - from the rest of the body.
+func splitTrailers(body string) (string, map[string][]string) {
+	trailers := map[string][]string{}
+	paras := strings.Split(body, "\n\n")
+	if len(paras) == 0 {
+		return body, trailers
+	}
+	last := strings.Split(strings.TrimSpace(paras[len(paras)-1]), "\n")
+	for _, l := range last {
+		k, v, ok := strings.Cut(l, ":")
+		if !ok || strings.ContainsAny(k, " \t") || k == "" {
+			return body, map[string][]string{}
+		}
+		trailers[k] = append(trailers[k], strings.TrimSpace(v))
+	}
+	return strings.TrimSpace(strings.Join(paras[:len(paras)-1], "\n\n")), trailers
 }
