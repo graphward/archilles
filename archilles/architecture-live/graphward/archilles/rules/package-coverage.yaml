@@ -1,5 +1,0 @@
-enforced_by: archilles
-note: >-
-  Every package belongs to exactly one component, and every component has at
-  least one package. The map matches the territory. This is the only rule
-  archilles enforces itself; everything else names the tool that does.

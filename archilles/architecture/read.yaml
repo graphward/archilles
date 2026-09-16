@@ -1,5 +1,0 @@
-kind: Layer
-metadata:
-  name: read
-spec:
-  description: Extracts an existing codebase into the normalized graph. Language-aware.
