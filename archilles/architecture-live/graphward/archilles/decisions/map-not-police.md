@@ -1,6 +1,3 @@
----
-name: map-not-police
----
 # Archilles enforces one thing: the map matches the territory
 
 ## Context

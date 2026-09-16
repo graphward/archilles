@@ -1,4 +1,3 @@
-name: package-coverage
 enforced_by: archilles
 note: >-
   Every package belongs to exactly one component, and every component has at
