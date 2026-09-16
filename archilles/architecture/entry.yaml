@@ -1,0 +1,5 @@
+kind: Layer
+metadata:
+  name: entry
+spec:
+  description: Thin wrappers. Nothing imports them.
