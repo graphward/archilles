@@ -158,7 +158,7 @@ func report(in design.Input, findings []design.Finding) {
 		if f.State == "accepted" {
 			mark = "accepted"
 		}
-		line := "  " + f.Subject
+		line := "  " + strings.TrimPrefix(f.Subject, liveRel+"/")
 		if f.Detail != "" {
 			line += "   " + f.Detail
 		}
