@@ -1,0 +1,5 @@
+enforced_by: github
+note: >-
+  An agent touches this repository only as a GitHub App, never under a human's
+  credentials, and no App holds merge rights. A misread instruction can then
+  become at most a pull request, and the record says which bot opened it.
