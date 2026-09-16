@@ -13,7 +13,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - run: go run ./cmd/archilles
+      - name: plan
+        if: github.event_name == 'pull_request'
+        env:
+          ARCHILLES_WHY: ${{ github.event.pull_request.body }}
+        run: go run ./cmd/archilles plan --base origin/${{ github.base_ref }}
+      - name: check
+        if: github.event_name != 'pull_request'
+        run: go run ./cmd/archilles check

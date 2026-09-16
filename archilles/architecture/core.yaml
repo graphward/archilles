@@ -1,0 +1,5 @@
+kind: Layer
+metadata:
+  name: core
+spec:
+  description: The design model and everything computed over it. Faces nothing outward.
